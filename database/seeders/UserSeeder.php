@@ -27,6 +27,6 @@ class UserSeeder extends Seeder
         ]);
 
         // Create 10 additional dummy users using a factory
-        User::factory(10)->create(['level_id' => $adminLevel->id ?? null]);
+        //User::factory(10)->create(['level_id' => $adminLevel->id ?? null]);
     }
 }
