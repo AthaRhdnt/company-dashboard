@@ -773,6 +773,9 @@
                         required>
                         <option value="">Select Item</option>
                         {{-- Options populated by JS on DOMContentLoaded --}}
+                        @foreach ($items as $item)
+                            <option value="{{ $item->id }}">{{ $item->item_name }}</option>
+                        @endforeach
                     </select>
                 </div>
 
