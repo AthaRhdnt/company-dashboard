@@ -15,9 +15,13 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\IncomingInvoiceController;
 use App\Http\Controllers\OutgoingInvoiceController;
 
+// Route::get('/', function () {
+//     return view('pages.welcome');
+// });
+
 Route::get('/', function () {
-    return view('pages.welcome');
-});
+    return view('pages.dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/user-status', function () {
     // Check if the user is authenticated
@@ -34,10 +38,6 @@ Route::get('/user-status', function () {
         'loginUrl' => route('login'), // Use the named route
     ]);
 })->name('user.status');
-
-Route::get('/dashboard', function () {
-    return view('pages.dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
