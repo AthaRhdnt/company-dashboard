@@ -7,6 +7,7 @@ use App\Models\Item;
 use App\Models\Order;
 use App\Models\Client;
 use App\Models\Vendor;
+use App\Models\ItemSpec;
 use App\Models\Department;
 use App\Models\InvoiceItem;
 use Illuminate\Http\Request;
@@ -65,7 +66,11 @@ class OrderController extends Controller
         $items = Item::with('itemSpecs')->get(); // Assume Item has a relationship named itemSpecs
         $taxes = Tax::all(); 
 
-        return view('pages.transactions.orders.create', compact('clients', 'departments', 'vendors', 'items', 'taxes'));
+        $orders = Order::select('id', 'ord_number', 'client_id', 'department_id', 'project_name', 'cur', 'amount')
+        ->orderBy('ord_date', 'desc')
+        ->get();
+
+        return view('pages.transactions.orders.create', compact('clients', 'departments', 'vendors', 'items', 'taxes', 'orders'));
     }
 
     /**
@@ -295,29 +300,75 @@ class OrderController extends Controller
         
     //     return view('pages.transactions.orders.show', compact('order', 'outgoingInvoice', 'incomingInvoice'));
     // }
+// public function show(Order $order)
+// {
+//     $clients = Client::all();
+//     $departments = Department::all();
+//     $vendors = Vendor::all();
+//     $items = Item::all(); 
+//     // Eager load all related documents
+//     $order->load([
+//         'client', 
+//         'department', 
+//         'purchaseOrder', 
+//         // CRITICAL: Deep load lineItems and their Specs
+//         'outgoingInvoices.lineItems.item',
+//         'outgoingInvoices.lineItems.specs', // NEW: Load specs for line items
+//         'outgoingInvoices.taxes',
+//         'incomingInvoices.vendor',
+//         'incomingInvoices.taxes',
+//     ]);
+
+//     $outgoingInvoice = $order->outgoingInvoices->first();
+//     $incomingInvoice = $order->incomingInvoices->first();
+    
+//     // CALCULATE PROFIT for display (assuming Revenue is Outgoing Amount)
+//     $revenue = optional($outgoingInvoice)->amount ?? 0;
+//     $cost = optional($incomingInvoice)->amount ?? 0;
+//     $profit = $revenue - $cost;
+
+//     return view('pages.transactions.orders.show', compact(
+//         'order',
+//         'clients', 
+//         'departments',
+//         'vendors',
+//         'items',
+//         'outgoingInvoice', 
+//         'incomingInvoice',
+//         'profit' // NEW: Pass profit to the view
+//     ));
+// }
 public function show(Order $order)
 {
+    // Fetch all static lists
     $clients = Client::all();
     $departments = Department::all();
     $vendors = Vendor::all();
     $items = Item::all(); 
-    // Eager load all related documents
+
+    // CRITICAL IMPROVEMENT: Move heavy DB query out of the Blade view's @php block.
+    // Load ALL ItemSpecs grouped by item_id and prepare JSON for Alpine/JS consumption.
+    $allItemSpecs = ItemSpec::all()->groupBy('item_id'); 
+    $allItemSpecsJson = $allItemSpecs->toJson();
+
+    // Eager load all required relationships
+    // NOTE: The load paths are correct for deep nested data.
     $order->load([
         'client', 
         'department', 
         'purchaseOrder', 
-        // CRITICAL: Deep load lineItems and their Specs
         'outgoingInvoices.lineItems.item',
-        'outgoingInvoices.lineItems.specs', // NEW: Load specs for line items
+        'outgoingInvoices.lineItems.specs',
         'outgoingInvoices.taxes',
         'incomingInvoices.vendor',
         'incomingInvoices.taxes',
     ]);
 
+    // Determine the primary invoices. This will be null if no relation exists.
     $outgoingInvoice = $order->outgoingInvoices->first();
     $incomingInvoice = $order->incomingInvoices->first();
     
-    // CALCULATE PROFIT for display (assuming Revenue is Outgoing Amount)
+    // Calculate profit (will be 0 if either invoice is null)
     $revenue = optional($outgoingInvoice)->amount ?? 0;
     $cost = optional($incomingInvoice)->amount ?? 0;
     $profit = $revenue - $cost;
@@ -330,7 +381,9 @@ public function show(Order $order)
         'items',
         'outgoingInvoice', 
         'incomingInvoice',
-        'profit' // NEW: Pass profit to the view
+        'profit',
+        'allItemSpecs',
+        'allItemSpecsJson' // Pass the pre-computed JSON string to the view
     ));
 }
 
@@ -859,4 +912,75 @@ public function massUpdate(Request $request, Order $order)
         $filename = 'orders_' . now()->format('Ymd_His') . '.xlsx';
         return Excel::download(new OrdersExport, $filename);
     }
+
+    /**
+     * Fetch data of an existing order to pre-fill the creation form via AJAX.
+     */
+public function getTemplateData(Order $order)
+{
+    $order->load([
+        'client:id,client_name',
+        'department:id,department_code',
+        'purchaseOrder:id,po_number,po_date',
+        'incomingInvoices.taxes:id,tax_name,tax_percentage',
+        'outgoingInvoices.taxes:id,tax_name,tax_percentage',
+        'incomingInvoices.vendor:id,vendor_name',
+        'outgoingInvoices.lineItems.item:id,item_name,item_price',
+        'outgoingInvoices.lineItems.specs:id,item_description',
+    ]);
+
+    $incomingInvoice = $order->incomingInvoices->first();
+    $outgoingInvoice = $order->outgoingInvoices->first();
+
+    // Safe date helper
+    $safeDate = function ($date) {
+        if (!$date) return null;
+        return is_string($date) ? $date : $date->format('Y-m-d');
+    };
+
+    return response()->json([
+        // Core Order Info
+        'id' => $order->id,
+        'ord_number' => $order->ord_number,
+        'ord_date' => $safeDate($order->ord_date),
+        'client_id' => $order->client_id,
+        'department_id' => $order->department_id,
+        'project_name' => $order->project_name,
+        'cur' => $order->cur,
+        'amount' => $order->amount,
+
+        // Purchase Order
+        'po_number' => optional($order->purchaseOrder)->po_number,
+        'po_date' => $safeDate(optional($order->purchaseOrder)->po_date),
+
+        // Vendor & Profit
+        'vendor_id' => optional($incomingInvoice)->vendor_id,
+        'agreement_percentage' => optional($incomingInvoice)->profit_percentage ?? 0,
+
+        // Taxes
+        'incoming_tax_ids' => $incomingInvoice
+            ? $incomingInvoice->taxes->pluck('id')->toArray()
+            : [],
+        'outgoing_tax_ids' => $outgoingInvoice
+            ? $outgoingInvoice->taxes->pluck('id')->toArray()
+            : [],
+
+        // Items
+        'items' => $outgoingInvoice
+            ? $outgoingInvoice->lineItems->map(function ($item) {
+                return [
+                    'item_id' => $item->item_id,
+                    'quantity' => $item->quantity,
+                    'subtotal' => $item->subtotal,
+                    'specs' => $item->specs->map(fn($s) => [
+                        'id' => $s->id,
+                        'item_description' => $s->item_description,
+                    ]),
+                ];
+            })->values()->toArray()
+            : [],
+    ]);
+}
+
+
 }

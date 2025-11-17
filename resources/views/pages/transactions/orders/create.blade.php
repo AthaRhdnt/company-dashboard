@@ -3,11 +3,51 @@
 
         <div class="space-y-6 max-w-4xl mx-auto">
 
-            {{-- SECTION 1: CORE ORDER & PO DETAILS --}}
-            <div class="p-6 bg-white shadow-xl rounded-lg border-t-4 border-indigo-500">
-                <h2 class="text-2xl font-bold mb-4 text-indigo-800 border-b pb-2">Core Order Details</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {{-- SECTION 0: BASED ON ORDER --}}
+<div class="p-6 bg-blue-50 shadow-xl rounded-lg border-t-4 border-blue-500 mb-6">
+    <h2 class="text-2xl font-bold mb-4 text-blue-800 border-b pb-2">Order Reference</h2>
+    <div class="flex items-center space-x-4">
+        <label class="inline-flex items-center">
+            <input type="checkbox" id="based_on_order_checkbox" class="form-checkbox text-blue-600">
+            <span class="ml-2 text-gray-700 font-medium">Based on Order:</span>
+        </label>
 
+        <select id="based_on_order_select"
+            class="hidden mt-1 block w-80 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+            <option value="">Select Order Number</option>
+            @foreach ($orders as $order)
+                <option value="{{ $order->id }}">{{ $order->ord_number }}</option>
+            @endforeach
+        </select>
+    </div>
+    <p class="text-xs text-gray-500 mt-2">
+        If checked, selecting an order will auto-fill client, department, currency, and project name fields.
+    </p>
+</div>
+
+
+            {{-- SECTION 1: CORE ORDER & PO DETAILS --}}
+            <div class="p-6 bg-white shadow-xl rounded-lg border-t-4 border-indigo-500 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-indigo-800 border-b pb-2">Core Order Details</h2>
+                {{-- <div class="mb-6 border-b pb-4">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="based_on_order" 
+                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <x-input-label for="based_on_order" value="{{ __('Based on Existing Order:') }}" class="cursor-pointer" />
+                    </div>
+
+                    <div id="existing-order-dropdown-container" class="mt-3 hidden">
+                        <x-input-label for="existing_order_id" value="{{ __('Select Order Number') }}" />
+                        <select id="existing_order_id" name="existing_order_id"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <option value="">-- Select Order --</option>
+                            @foreach ($existingOrders as $order)
+                                <option value="{{ $order->id }}">{{ $order->ord_number }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6"> --}}
                     {{-- Core Order Inputs --}}
                     <div>
                         <x-input-label for="client_id" :value="__('Client')" />
@@ -50,7 +90,7 @@
             </div>
 
             {{-- SECTION 2: FINANCIALS & COST CALCULATION (INPUTS BEFORE TAXES) --}}
-            <div class="p-6 bg-yellow-50 shadow-xl rounded-lg border-t-4 border-yellow-500">
+            <div class="p-6 bg-yellow-50 shadow-xl rounded-lg border-t-4 border-yellow-500 mb-6">
                 <h2 class="text-2xl font-bold mb-4 text-yellow-800 border-b pb-2">Financials & Cost Calculation</h2>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
 
@@ -99,7 +139,7 @@
             </div>
 
             {{-- SECTION 3: TAX SELECTION AND VENDOR AMOUNT DISPLAY (THE CRUCIAL PART) --}}
-            <div class="p-6 bg-yellow-100 shadow-xl rounded-lg border-t-4 border-red-500">
+            <div class="p-6 bg-yellow-100 shadow-xl rounded-lg border-t-4 border-red-500 mb-6">
                 <h3 class="text-xl font-semibold mb-4 text-red-800 border-b pb-2">Taxes & Final Vendor Amount</h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -152,8 +192,8 @@
             </div>
 
             {{-- SECTION 4: DYNAMIC INVOICE ITEMS --}}
-            <div class="p-6 bg-gray-50 shadow-xl rounded-lg border-t-4 border-purple-500">
-                <h3 class="text-xl font-bold mb-4 text-purple-800 border-b pb-2">Invoice Items & Specifications</h3>
+            <div class="p-6 bg-gray-50 shadow-xl rounded-lg border-t-4 border-purple-500 mb-6">
+                <h3 class="text-xl font-bold mb-4 text-purple-800 border-b pb-2">Ordered Items & Specifications</h3>
 
                 {{-- BUTTONS FOR SHORTCUTS --}}
                 <div class="flex space-x-3 mb-4">
@@ -732,6 +772,129 @@
                     });
                 }
             });
+
+            // -------------------------------------------------------
+// BASED ON ORDER LOGIC (Full Prefill)
+// -------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("🟢 Based-on-order logic initialized");
+    const checkbox = document.getElementById('based_on_order_checkbox');
+    const dropdown = document.getElementById('based_on_order_select');
+
+    if (!checkbox || !dropdown) {
+        console.error("❌ Checkbox or dropdown not found in DOM");
+        return;
+    }
+
+    checkbox.addEventListener('change', () => {
+        console.log("Checkbox toggled:", checkbox.checked);
+        if (checkbox.checked) {
+            dropdown.classList.remove('hidden');
+        } else {
+            dropdown.classList.add('hidden');
+            dropdown.value = '';
+        }
+    });
+
+    dropdown.addEventListener('change', async () => {
+        const orderId = dropdown.value;
+        console.log("📦 Selected Order ID:", orderId);
+        if (!orderId) return;
+
+        try {
+            const res = await fetch(`/orders/${orderId}/template`);
+            console.log("📡 Fetch URL:", res.url, "Status:", res.status);
+            const data = await res.json();
+            console.log("📥 Received Data:", data);
+
+            if (!data || !data.id) {
+                console.warn("⚠️ No data returned for this order");
+                return;
+            }
+
+            alert(`Order ${data.ord_number} loaded!`);
+
+            // ===== Prefill Base Inputs =====
+            document.getElementById('client_id').value = data.client_id ?? '';
+            document.getElementById('department_id').value = data.department_id ?? '';
+            document.getElementById('cur').value = data.cur ?? 'IDR';
+            document.getElementById('project_name').value = data.project_name ?? '';
+            document.getElementById('order_no').value = ''; // Keep blank (new order)
+            document.getElementById('ord_date').value = new Date().toISOString().split('T')[0]; // Today
+
+            // Purchase Order
+            document.getElementById('po_number').value = data.po_number ? `${data.po_number}-COPY` : '';
+            document.getElementById('po_date').value = new Date().toISOString().split('T')[0];
+
+            // Vendor & Financials
+            if (data.vendor_id) document.getElementById('vendor_id').value = data.vendor_id;
+            if (data.amount) document.getElementById('total_customer_payment').value = formatForInput(data.amount, false);
+            if (data.agreement_percentage)
+                document.getElementById('agreement_percentage').value = data.agreement_percentage;
+
+            // ===== Taxes =====
+            document.querySelectorAll('input[name="incoming_tax_ids[]"]').forEach(c => c.checked = false);
+            document.querySelectorAll('input[name="outgoing_tax_ids[]"]').forEach(c => c.checked = false);
+
+            if (Array.isArray(data.incoming_tax_ids)) {
+                data.incoming_tax_ids.forEach(id => {
+                    const checkbox = document.querySelector(`#in-tax-${id}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            if (Array.isArray(data.outgoing_tax_ids)) {
+                data.outgoing_tax_ids.forEach(id => {
+                    const checkbox = document.querySelector(`#out-tax-${id}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+
+            // ===== Items =====
+            const tbody = document.getElementById('invoice-items-body');
+            tbody.querySelectorAll('tr:not(#item-row-template)').forEach(tr => tr.remove());
+
+            if (Array.isArray(data.items)) {
+                data.items.forEach(item => {
+                    addItem();
+                    const row = tbody.querySelector('tr:last-child');
+                    const itemSelect = row.querySelector('.item-select');
+                    const qtyInput = row.querySelector('.quantity-input');
+                    const subInput = row.querySelector('.subtotal-input');
+                    const specSelect = row.querySelector('.spec-select');
+
+                    itemSelect.value = item.item_id;
+                    qtyInput.value = item.quantity;
+                    subInput.value = formatForInput(item.subtotal, false);
+
+                    // Fill Specs
+                    specSelect.innerHTML = '';
+                    if (item.specs && item.specs.length > 0) {
+                        item.specs.forEach(spec => {
+                            const opt = document.createElement('option');
+                            opt.value = spec.id;
+                            opt.textContent = spec.item_description;
+                            opt.selected = true;
+                            specSelect.appendChild(opt);
+                        });
+                    }
+
+                    // Trigger price recalculation and spec binding
+                    updateSubtotal(row);
+
+                    if (typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
+                        $(specSelect).select2({ placeholder: "Select specifications", allowClear: true });
+                    }
+                });
+            }
+
+            calculateVendorCost();
+
+        } catch (err) {
+            console.error('Error fetching template data:', err);
+        }
+    });
+});
+
         </script>
     </x-pages.form>
 

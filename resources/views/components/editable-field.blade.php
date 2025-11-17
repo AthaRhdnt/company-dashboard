@@ -5,7 +5,7 @@
     <x-input-label :for="$name" :value="__($label)" />
 
     {{-- Static Display Value --}}
-    <p x-show="!{{ $isEditing }}" class="text-sm text-gray-900 font-medium p-2">
+    <p x-show="!{{ $isEditing }}" class="text-sm text-gray-900 font-medium pt-2">
         {{ $displayValue }}
     </p>
 

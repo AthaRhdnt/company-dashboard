@@ -6,23 +6,23 @@
         $vendors = $vendors ?? collect();
         $items = $items ?? collect(); // All Items for select dropdowns
         $currencies = $currencies ?? ['IDR', 'USD', 'SGD', 'EUR', 'JPY'];
+        
+        // Use passed variables with safe fallbacks
+        $allItemSpecsJson = $allItemSpecsJson ?? '[]'; // Use controller-passed JSON
         $profit = $profit ?? 0;
         $outgoingInvoice = $outgoingInvoice ?? null;
         $incomingInvoice = $incomingInvoice ?? null;
         
         // Use an empty collection if no line items exist for structural consistency
         $lineItems = optional($outgoingInvoice)->lineItems ?? collect();
-        
-        // Load all ItemSpecs grouped by item_id to pass to Alpine/JS/Partial
-        $allItemSpecs = App\Models\ItemSpec::all()->groupBy('item_id'); 
-        $allItemSpecsJson = $allItemSpecs->toJson();
     @endphp
 
     {{-- Alpine component for Edit Toggle State and New Items --}}
     <div x-data="{ 
         isEditing: {{ count($errors) > 0 ? 'true' : 'false' }},
         newLineItems: [], // Array to hold new line item objects
-        allItemSpecs: JSON.parse('{{ $allItemSpecsJson }}'),
+        // **CRITICAL FIX:** Safely decode the JSON string passed from the controller.
+        allItemSpecs: JSON.parse(@js($allItemSpecsJson)),
         
         addNewLineItem() {
             // Use a unique temporary key (like timestamp) for the new row index
@@ -189,14 +189,14 @@
                     <h2 class="col-span-full text-xl font-semibold mb-2 text-indigo-700">Core Transaction Details</h2>
                     
                     {{-- 1. MCN Order Number (Editable) --}}
-                    <x-editable-field label="Order Number" is-editing="isEditing" type="text"
+                    <x-editable-field label="Order Number" is-editing="isEditing" type="text" class="text-sm font-medium text-gray-500"
                         name="ord_number" :value="$order->ord_number"
                         display-value="{{ $order->ord_number }}" required />
 
                     {{-- 2. Client Name (Editable Select) --}}
                     <div class="space-y-1">
                         <x-input-label for="client_id" value="Client Name" />
-                        <p x-show="!isEditing" class="text-sm text-gray-900 font-medium p-2">
+                        <p x-show="!isEditing" class="text-sm text-gray-900 font-medium pt-2">
                             {{ $order->client->client_name ?? 'N/A' }}
                         </p>
                         <select x-show="isEditing" id="client_id" name="client_id"
@@ -411,7 +411,7 @@
                 <hr class="my-6">
                 
                 {{-- LINE ITEMS SECTION (PERMANENT AND EDITABLE) --}}
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Outgoing Invoice Line Items (Editable)</h2>
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Ordered Items</h2>
                 
                 {{-- Add Item Button --}}
                 <div x-show="isEditing" class="mb-4">

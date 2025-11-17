@@ -1,5 +1,5 @@
 <aside id="sidebar"
-    class="bg-gray-900 text-gray-300 shadow-2xl transition-all duration-300 ease-in-out z-50 flex flex-col h-full overflow-y-auto"
+    class="bg-gray-900 text-gray-300 shadow-2xl transition-all duration-300 ease-in-out z-50 flex flex-col h-full overflow-y-auto scrollbar-hide"
     :class="sidebarOpen ? 'w-64' : 'w-20'">
 
     <div class="flex flex-col flex-grow p-4">
@@ -154,11 +154,11 @@
                             :class="activePage === 'items' ? 'text-indigo-400 font-semibold' :
                                 'text-gray-400 hover:bg-gray-700 hover:text-white'"
                             :class="!sidebarOpen && 'hidden'">Items</a></li>
-                    <li><a href="{{ route('item-specs.index') }}" @click="activePage = 'itemSpecs'"
+                    {{-- <li><a href="{{ route('item-specs.index') }}" @click="activePage = 'itemSpecs'"
                             class="block p-2 text-sm rounded-lg transition-colors duration-150"
                             :class="activePage === 'itemSpecs' ? 'text-indigo-400 font-semibold' :
                                 'text-gray-400 hover:bg-gray-700 hover:text-white'"
-                            :class="!sidebarOpen && 'hidden'">Item Specs</a></li>
+                            :class="!sidebarOpen && 'hidden'">Item Specs</a></li> --}}
                 </ul>
             </div>
 
@@ -196,16 +196,16 @@
                             :class="activePage === 'users' ? 'text-indigo-400 font-semibold' :
                                 'text-gray-400 hover:bg-gray-700 hover:text-white'"
                             :class="!sidebarOpen && 'hidden'">Users</a></li>
-                    <li><a href="{{ route('permissions.index') }}" @click="activePage = 'permissions'"
+                    <li><a href="{{ route('accesses.index') }}" @click="activePage = 'accesses'"
                             class="block p-2 text-sm rounded-lg transition-colors duration-150"
-                            :class="activePage === 'permissions' ? 'text-indigo-400 font-semibold' :
+                            :class="activePage === 'accesses' ? 'text-indigo-400 font-semibold' :
                                 'text-gray-400 hover:bg-gray-700 hover:text-white'"
-                            :class="!sidebarOpen && 'hidden'">Permissions</a></li>
-                    <li><a href="{{ route('levels.index') }}" @click="activePage = 'levels'"
+                            :class="!sidebarOpen && 'hidden'">Access</a></li>
+                    <li><a href="{{ route('roles.index') }}" @click="activePage = 'roles'"
                             class="block p-2 text-sm rounded-lg transition-colors duration-150"
-                            :class="activePage === 'levels' ? 'text-indigo-400 font-semibold' :
+                            :class="activePage === 'roles' ? 'text-indigo-400 font-semibold' :
                                 'text-gray-400 hover:bg-gray-700 hover:text-white'"
-                            :class="!sidebarOpen && 'hidden'">Levels</a></li>
+                            :class="!sidebarOpen && 'hidden'">Roles</a></li>
                 </ul>
             </div>
 

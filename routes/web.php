@@ -45,8 +45,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::resource('users', UserController::class);
-    Route::resource('permissions', PermissionController::class);
-    Route::resource('levels', LevelController::class);
+    Route::resource('accesses', PermissionController::class);
+    Route::resource('roles', LevelController::class);
     Route::resource('clients', ClientController::class);
     Route::resource('vendors', VendorController::class);
     Route::resource('departments', DepartmentController::class);
@@ -55,9 +55,20 @@ Route::middleware('auth')->group(function () {
     Route::resource('items', ItemController::class);
     Route::post('/quick-create/item', [ItemController::class, 'quickStore'])->name('items.quickStore');
 
-    Route::resource('item-specs', ItemSpecController::class);
+    // Route::resource('item-specs', ItemSpecController::class);
     Route::post('/quick-create/item-spec', [ItemSpecController::class, 'quickStore'])->name('item-specs.quickStore');
+    Route::prefix('item-specs')->group(function () {
+        // 1. Create (POST) - Used by 'Add Spec' button
+        Route::post('/', [ItemSpecController::class, 'store'])->name('item-specs.store'); 
 
+        // 2. Update (PUT) - Used by 'Save' button. Note the custom route parameter name
+        Route::put('/inline/{itemSpec}', [ItemSpecController::class, 'updateInline'])->name('item-specs.update_inline'); 
+
+        // 3. Destroy (DELETE) - Used by 'Delete' button
+        Route::delete('/{itemSpec}', [ItemSpecController::class, 'destroy'])->name('item-specs.destroy'); 
+    });
+
+    Route::get('orders/{order}/template', [OrderController::class, 'getTemplateData'])->name('orders.template');
     Route::post('orders/bulk-update', [OrderController::class, 'massUpdate'])->name('orders.mass-update');
     // Route::put('orders/mass-update', [OrderController::class, 'massUpdate'])->name('orders.mass-update');
     Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');

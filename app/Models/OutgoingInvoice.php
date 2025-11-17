@@ -15,6 +15,7 @@ class OutgoingInvoice extends Model
         'due_date',
         'fp_number',
         'income_date',
+        'do_number',
         'cur',
         'amount',
         'po_number',

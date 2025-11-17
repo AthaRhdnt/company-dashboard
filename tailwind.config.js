@@ -1,5 +1,7 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
+// We need to import the 'plugin' utility from Tailwind CSS
+import plugin from 'tailwindcss/plugin'; 
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -71,5 +73,22 @@ export default {
         },
     },
 
-    plugins: [forms],
+    plugins: [
+        forms,
+        // CRITICAL FIX: Add a custom plugin to define 'scrollbar-hide'
+        plugin(function ({ addUtilities }) {
+            addUtilities({
+                '.scrollbar-hide': {
+                    // Hide scrollbar for IE, Edge, and Firefox
+                    '-ms-overflow-style': 'none',  /* IE and Edge */
+                    'scrollbar-width': 'none',     /* Firefox */
+                    
+                    // Hide scrollbar for Chrome, Safari, and Opera
+                    '&::-webkit-scrollbar': {
+                        'display': 'none',
+                    },
+                },
+            }, ['responsive']); // Make the utility responsive
+        }),
+    ],
 };

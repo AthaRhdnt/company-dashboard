@@ -203,10 +203,10 @@
                                     <th class="px-3 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider w-10">NO</th>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-48">{{ $subjectHeader }}</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-20">D-CODE</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-36">INVOICE NO</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-28">{{ $date1Header }}</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-28">{{ $date2Header }}</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-36">FP S/N</th>
+                                    <th class="px-2 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-36">INVOICE NO</th>
+                                    <th class="px-2 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-28">{{ $date1Header }}</th>
+                                    <th class="px-2 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-28">{{ $date2Header }}</th>
+                                    <th class="px-2 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-36">FP S/N</th>
                                     @if($themeColor == 'indigo')
                                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-36">PO NO</th>
                                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-28">PO DATE</th>
