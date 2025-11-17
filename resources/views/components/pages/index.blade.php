@@ -1,4 +1,4 @@
-@props(['resource', 'items', 'headers'])
+@props(['resource', 'items', 'headers', 'extraCreateParams' => null]) {{-- Modified props --}}
 
 {{-- Determine if the items collection is a Paginator instance --}}
 @php
@@ -8,7 +8,11 @@
 <x-pages.layout>
     <div class="flex justify-between items-center mb-4">
         <h1 class="text-2xl font-bold capitalize">{{ str($resource)->headline() }} List</h1>
-        <a href="{{ route($resource . '.create') }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150">Add New {{ str(Str::singular($resource))->headline() }}</a>
+        @php
+            // Use the extraCreateParams array for the create route
+            $createRoute = route($resource . '.create', $extraCreateParams ?? []); // Handle null case
+        @endphp
+        <a href="{{ $createRoute }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150">Add New {{ str(Str::singular($resource))->headline() }}</a>
     </div>
 
     {{-- Use count() instead of isNotEmpty() to ensure it works for both Collection and Paginator --}}
@@ -16,7 +20,7 @@
         <div class="overflow-x-auto">
             <table class="min-w-full bg-white">
                 <thead>
-                    <tr>
+                    <tr class="text-left">
                         <th class="py-2 px-4 border-b">No</th>
                         @foreach($headers as $header)
                             <th class="py-2 px-4 border-b">{{ $header }}</th>
@@ -42,8 +46,13 @@
                                 <td class="py-2 px-4 border-b">{{ data_get($item, $key) }}</td>
                             @endforeach
                             <td class="py-2 px-4 border-b">
+                                {{-- For non-nested routes, the route parameter is just the ID of the resource --}}
                                 <a href="{{ route($resource . '.show', $item->id) }}" class="text-blue-500 hover:underline mr-2">View</a>
+                                
+                                {{-- EDIT ROUTE --}}
                                 <a href="{{ route($resource . '.edit', $item->id) }}" class="text-yellow-500 hover:underline mr-2">Edit</a>
+                                
+                                {{-- DELETE FORM --}}
                                 <form action="{{ route($resource . '.destroy', $item->id) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')

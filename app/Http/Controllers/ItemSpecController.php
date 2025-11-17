@@ -9,103 +9,67 @@ use Illuminate\Support\Facades\DB;
 
 class ItemSpecController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $itemSpecs = ItemSpec::with('item')->paginate(5);
-        return view('pages.master.item-specs.index', compact('itemSpecs'));
-        // dd($itemSpecs); 
-    }
+    // The methods below are now generally unnecessary for your goal, but left for context.
+    /*
+    public function index() { ... }
+    public function create(Request $request) { ... }
+    public function show(ItemSpec $itemSpec) { ... }
+    public function edit(ItemSpec $itemSpec) { ... }
+    public function update(Request $request, Item $item) { ... } // This method is for bulk form updates, not inline.
+    */
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        $items = Item::all();
-        return view('pages.master.item-specs.create', compact('items'));
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * Store a newly created resource (single spec) via AJAX from the Item Show page.
+     * This replaces the bulk quickStore you had previously.
      */
     public function store(Request $request)
     {
-        // Validation for each item in the array
         $validatedData = $request->validate([
-            'item_specs' => 'required|array',
-            'item_specs.*.item_description' => 'required|string|max:255',
-            'item_specs.*.item_id' => 'required|exists:items,id',
-        ]);
-
-        // try {
-        //     DB::beginTransaction();
-
-            foreach ($validatedData['item_specs'] as $spec) {
-                ItemSpec::create([
-                    'item_description' => $spec['item_description'],
-                    'item_id' => $spec['item_id'],
-                ]);
-            }
-
-            return redirect()->route('item_specs.index')->with('success', 'Item spec created successfully.');
-
-        //     DB::commit();
-
-        //     return redirect()->route('item_specs.index')->with('success', 'Item specs created successfully.');
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
-        //     return back()->with('error', 'Failed to create item specs: ' . $e->getMessage())->withInput();
-        // }
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(ItemSpec $itemSpec)
-    {
-        $itemSpec->load('item');
-        return view('pages.master.item-specs.show', compact('itemSpec'));
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(ItemSpec $itemSpec)
-    {
-        $items = Item::all();
-        return view('pages.master.item-specs.edit', compact('itemSpec', 'items'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, ItemSpec $itemSpec)
-    {
-        $validatedData = $request->validate([
-            'item_description' => 'required|string|max:255',
             'item_id' => 'required|exists:items,id',
+            'item_description' => 'required|string|max:500', // Assuming max 500 chars
         ]);
 
+        $spec = ItemSpec::create($validatedData);
+        
+        // Return the created spec as JSON for Alpine to add to the list
+        return response()->json([
+            'success' => true,
+            'spec' => ['id' => $spec->id, 'item_description' => $spec->item_description],
+            'message' => 'Specification created successfully.',
+        ], 201); // 201 Created
+    }
+
+    /**
+     * Update the specified resource (single spec) via AJAX (PUT).
+     * This is the method the inline editing will hit.
+     */
+    public function updateInline(Request $request, ItemSpec $itemSpec)
+    {
+        $validatedData = $request->validate([
+            'item_description' => 'required|string|max:500',
+        ]);
+        
         $itemSpec->update($validatedData);
 
-        return redirect()->route('item-specs.index')->with('success', 'Item spec updated successfully.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Specification updated successfully.',
+            // Return the updated description in case of server-side formatting
+            'item_description' => $itemSpec->item_description,
+        ]);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified resource from storage via AJAX (DELETE).
      */
     public function destroy(ItemSpec $itemSpec)
     {
-        try {
-            $itemSpec->delete();
-            return redirect()->route('item-specs.index')->with('success', 'Item spec deleted successfully.');
-        } catch (\Exception $e) {
-            // Provide a friendly error message if the spec is linked to an invoice item
-            return redirect()->route('item-specs.index')->with('error', 'Cannot delete Item Spec, it is currently linked to one or more invoice line items.');
-        }
+        $itemSpec->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Specification deleted successfully.',
+        ]);
     }
 
     public function quickStore(Request $request)
