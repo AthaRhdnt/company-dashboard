@@ -1,9 +1,9 @@
 <x-app-layout>
     <x-pages.index
-        resource="permissions"
+        resource="accesses"
         :items="$permissions"
         :headers="[
-            'permission_name' => 'Permissions Name',
+            'permission_name' => 'Access Name',
             'level.level_name' => 'Level'
         ]"
     />

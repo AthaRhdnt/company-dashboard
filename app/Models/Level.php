@@ -22,4 +22,17 @@ class Level extends Model
     {
         return $this->hasMany(Permission::class);
     }
+
+    public function getPermissionListAttribute()
+    {
+        // Checks if the 'permissions' relationship has been loaded (eager-loaded)
+        if ($this->relationLoaded('permissions')) {
+            // Map the permissions collection to get only the 'permission_name' field
+            // Then join them into a single string separated by a comma and a space
+            return $this->permissions->pluck('permission_name')->implode(', ');
+        }
+        
+        // Fallback if the relationship wasn't loaded (though your controller loads it)
+        return 'N/A';
+    }
 }

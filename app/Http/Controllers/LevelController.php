@@ -12,8 +12,9 @@ class LevelController extends Controller
      */
     public function index()
     {
-        $levels = Level::with(['users', 'permissions'])->get();
-        return view('pages.management.levels.index', compact('levels'));
+        $roles = Level::with(['users', 'permissions'])->get();
+        return view('pages.management.levels.index', compact('roles'));
+        // dd($roles->toArray());
     }
 
     /**
@@ -41,17 +42,17 @@ class LevelController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Level $level)
+    public function show(Level $role)
     {
-        return view('pages.management.levels.show', compact('level'));
+        return view('pages.management.levels.show', compact('role'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Level $level)
+    public function edit(Level $role)
     {
-        return view('pages.management.levels.edit', compact('level'));
+        return view('pages.management.levels.edit', compact('role'));
     }
 
     /**

@@ -1,9 +1,9 @@
 <x-app-layout>
     <x-pages.show
-        resource="levels"
-        :item="$level"
+        resource="roles"
+        :item="$role"
         :details="[
-            'Level Name' => $level->level_name,
+            'Level Name' => $role->level_name,
         ]"
     />
 </x-app-layout>

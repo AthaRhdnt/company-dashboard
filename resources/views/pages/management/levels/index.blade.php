@@ -1,9 +1,10 @@
 <x-app-layout>
     <x-pages.index
-        resource="levels"
-        :items="$levels"
+        resource="roles"
+        :items="$roles"
         :headers="[
-            'level_name' => 'Level',
+            'level_name' => 'Role',
+            'permission_list' => 'Role Access',
         ]"
     />
 </x-app-layout>

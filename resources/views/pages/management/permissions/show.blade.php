@@ -1,10 +1,10 @@
 <x-app-layout>
     <x-pages.show
-        resource="permissions"
-        :item="$permission"
+        resource="accesses"
+        :item="$accesses"
         :details="[
-            'Permission Name' => $permission->permission_name,
-            'Level' => $permission->level->level_name ?? 'N/A'
+            'Permission Name' => $accesses->permission_name,
+            'Level' => $accesses->level->level_name ?? 'N/A'
         ]"
     />
 </x-app-layout>

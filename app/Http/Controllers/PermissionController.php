@@ -13,8 +13,8 @@ class PermissionController extends Controller
      */
     public function index()
     {
-        $permissions = Permission::with('level')->get();
-        return view('pages.management.permissions.index', compact('permissions'));
+        $accesses = Permission::with('level')->get();
+        return view('pages.management.permissions.index', compact('accesses'));
     }
 
     /**
