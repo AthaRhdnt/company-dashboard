@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('outgoing_invoices', function (Blueprint $table) {
-            $table->string('inv_number')->nullable()->change();
+        Schema::table('orders', function (Blueprint $table) {
+            $table->boolean('is_pph23_prepaid')->default(false)->after('remark');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('outgoing_invoices', function (Blueprint $table) {
-            $table->string('inv_number')->nullable(false)->change();
+        Schema::table('orders', function (Blueprint $table) {
+            $table->dropColumn('is_pph23_prepaid');
         });
     }
 };

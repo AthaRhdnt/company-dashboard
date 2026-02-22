@@ -19,8 +19,8 @@ class ItemSpec extends Model
         return $this->belongsTo(Item::class);
     }
 
-    public function invoiceItems()
+    public function outgoingInvoiceItems()
     {
-        return $this->belongsToMany(InvoiceItem::class, 'invoice_item_specs', 'item_spec_id', 'invoice_item_id');
+        return $this->belongsToMany(OutgoingInvoiceItem::class, 'invoice_item_specs', 'item_spec_id', 'invoice_item_id');
     }
 }

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('outgoing_invoices', function (Blueprint $table) {
-            $table->string('inv_number')->nullable()->change();
+            $table->string('rpt_number')->nullable()->after('income_date');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('outgoing_invoices', function (Blueprint $table) {
-            $table->string('inv_number')->nullable(false)->change();
+            $table->dropColumn('rpt_number');
         });
     }
 };

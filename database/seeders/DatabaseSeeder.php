@@ -38,7 +38,8 @@ class DatabaseSeeder extends Seeder
             // InvoiceItemDetailSeeder::class, // Depends on OutgoingInvoice & ItemSpec Seeders
 
             // DummySeeder::class
-            ProductionDataSeeder::class,
+            // ProductionDataSeeder::class,
+            LegacyDataSeeder::class,
         ]);
     }
 }

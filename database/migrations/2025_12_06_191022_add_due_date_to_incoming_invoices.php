@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('outgoing_invoices', function (Blueprint $table) {
-            $table->string('inv_number')->nullable()->change();
+        Schema::table('incoming_invoices', function (Blueprint $table) {
+            $table->date('due_date')->nullable()->after('inv_received_date');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('outgoing_invoices', function (Blueprint $table) {
-            $table->string('inv_number')->nullable(false)->change();
+        Schema::table('incoming_invoices', function (Blueprint $table) {
+            $table->dropColumn('due_date');
         });
     }
 };
