@@ -9,15 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class ItemSpecController extends Controller
 {
-    // The methods below are now generally unnecessary for your goal, but left for context.
-    /*
-    public function index() { ... }
-    public function create(Request $request) { ... }
-    public function show(ItemSpec $itemSpec) { ... }
-    public function edit(ItemSpec $itemSpec) { ... }
-    public function update(Request $request, Item $item) { ... } // This method is for bulk form updates, not inline.
-    */
-
     /**
      * Store a newly created resource (single spec) via AJAX from the Item Show page.
      * This replaces the bulk quickStore you had previously.
@@ -26,7 +17,7 @@ class ItemSpecController extends Controller
     {
         $validatedData = $request->validate([
             'item_id' => 'required|exists:items,id',
-            'item_description' => 'required|string|max:500', // Assuming max 500 chars
+            'item_description' => 'required|string|max:500',
         ]);
 
         $spec = ItemSpec::create($validatedData);
@@ -36,7 +27,7 @@ class ItemSpecController extends Controller
             'success' => true,
             'spec' => ['id' => $spec->id, 'item_description' => $spec->item_description],
             'message' => 'Specification created successfully.',
-        ], 201); // 201 Created
+        ], 201);
     }
 
     /**
@@ -54,7 +45,6 @@ class ItemSpecController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Specification updated successfully.',
-            // Return the updated description in case of server-side formatting
             'item_description' => $itemSpec->item_description,
         ]);
     }
@@ -77,7 +67,6 @@ class ItemSpecController extends Controller
         // 1. Validate the minimal input data
         $request->validate([
             'item_id' => ['required', 'exists:items,id'],
-            // Validate each description in the array
             'descriptions' => ['nullable', 'array'],
             'descriptions.*' => ['nullable', 'string', 'max:500'], 
         ]);
@@ -101,13 +90,13 @@ class ItemSpecController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error: You must provide at least one specification detail.',
-            ], 422); // Use HTTP 422 for Unprocessable Entity
+            ], 422);
         }
 
         // 3. Return the new specs data as JSON
         return response()->json([
             'success' => true,
-            'specs' => $createdSpecs, // Changed from 'spec' to 'specs'
+            'specs' => $createdSpecs,
             'message' => count($createdSpecs) . ' specifications created successfully.',
         ]);
     }

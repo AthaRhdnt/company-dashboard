@@ -44,7 +44,7 @@ class OrdersExport implements FromCollection, WithHeadings, WithStartRow, WithEv
                     'NO' => $order->id,
                     'ORDER NO' => $order->ord_number,
                     'D-CODE' => $order->department->department_code ?? 'N/A',
-                    'ORDER DATE' => $order->ord_date ? Carbon::parse($order->order_date)->format('d-M-y') : '',
+                    'ORDER DATE' => $order->ord_date ? Carbon::parse($order->ord_date)->format('d-M-y') : '',
                     'CUSTOMER NAME' => $order->client->client_name ?? 'N/A',
                     'PROJECT NAME' => $order->project_name,
                     'CUSTOMER PO NO' => $order->purchaseOrder->po_number ?? 'N/A',
@@ -94,7 +94,7 @@ class OrdersExport implements FromCollection, WithHeadings, WithStartRow, WithEv
                 // (Instruction Row + 1) = R[DataEnd] + 7
                 $totalRow = $dataRangeEnd + 7;
                 
-                // ✨ FIX: The last exported row is the total row. 
+                // FIX: The last exported row is the total row. 
                 // This prevents "Invalid cell coordinate" error when data is empty.
                 $lastExportRow = $totalRow; 
 
@@ -158,7 +158,7 @@ class OrdersExport implements FromCollection, WithHeadings, WithStartRow, WithEv
         $dataRangeRemarks = 'K' . self::DATA_START_ROW . ':K' . $dataRangeEnd;
 
         // A1 Content (Title)
-        $sheet->setCellValue('A1', 'ORDER RECEIVED 2025');
+        $sheet->setCellValue('A1', 'ORDER RECEIVED ' . Carbon::now()->year);
         $sheet->getStyle('A1')->applyFromArray([
             'font' => ['name' => 'Arial Black', 'size' => 20, 'color' => ['rgb' => '4F6228']],
             'alignment' => ['vertical' => Alignment::VERTICAL_CENTER], 

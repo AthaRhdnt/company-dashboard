@@ -102,7 +102,7 @@ class OutgoingInvoicesExport implements FromCollection, WithHeadings, WithStartR
                 // (Instruction Row + 1) = R[DataEnd] + 7
                 $totalRow = $dataRangeEnd + 7; 
                 
-                // ✨ FIX: The last exported row is the total row. 
+                // FIX: The last exported row is the total row. 
                 // This prevents "Invalid cell coordinate" error when data is empty.
                 $lastExportRow = $totalRow; 
 
@@ -169,7 +169,7 @@ class OutgoingInvoicesExport implements FromCollection, WithHeadings, WithStartR
         $dataRangeRemarks = 'N' . self::DATA_START_ROW . ':N' . $dataRangeEnd;
 
         // A1 Content (Title)
-        $sheet->setCellValue('A1', 'LIST INVOICE 2025');
+        $sheet->setCellValue('A1', 'LIST INVOICE ' . Carbon::now()->year);
         $sheet->getStyle('A1')->applyFromArray([
             'font' => ['name' => 'Arial Black', 'size' => 20, 'color' => ['rgb' => '1F497D']],
             'alignment' => ['vertical' => Alignment::VERTICAL_CENTER], 

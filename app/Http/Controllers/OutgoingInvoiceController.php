@@ -1,60 +1,65 @@
 <?php
 namespace App\Http\Controllers;
 
-use ZipArchive;
-use Carbon\Carbon;
-use App\Models\Order;
-use App\Models\Client;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use App\Traits\TerbilangTrait;
-use App\Models\OutgoingInvoice;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\DocumentExport;
 use App\Exports\OutgoingInvoicesExport;
+use App\Models\Client;
+use App\Models\Order;
+use App\Models\OutgoingInvoice;
+use App\Services\LifecycleSorter;
+use App\Services\ManualPaginator;
+use App\Traits\TerbilangTrait;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Excel as ExcelExcel;
+use Maatwebsite\Excel\Facades\Excel;
+use ZipArchive;
 
 class OutgoingInvoiceController extends Controller
 {
-    use TerbilangTrait; 
+    use TerbilangTrait;
+    use ManualPaginator;
 
     /**
      * Display a listing of the resource.
      */
+
     public function index()
     {
-        // Eager load the required relationships: Client, Order, and the Department (D-CODE) via the Order.
-        $outgoingInvoices = OutgoingInvoice::with(['order.department', 'client'])
-            ->orderBy('inv_date', 'desc')
-            ->paginate(20);
+        $invoices = OutgoingInvoice::with([
+            'order.outgoingInvoices',
+            'order.incomingInvoices',
+            'order.purchaseOrder',
+            'client',
+        ])->get();
 
-        // Transform data for display formatting (amount and dates)
-        $outgoingInvoices->getCollection()->transform(function ($invoice) {
-            $invoice->formatted_amount = $invoice->cur . ' ' . number_format($invoice->amount, 0, ',', '.'); // Assuming Indonesian format without decimals
-
-            // FIX: Safely parse the date attribute using Carbon::parse() before calling format().
-            // This handles cases where the attributes are stored as strings or raw date values.
-            $invoice->inv_date_formatted = $invoice->inv_date
-                ? Carbon::parse($invoice->inv_date)->format('Y-m-d')
+        $invoices->each(function ($invoice) {
+            $invoice->inv_date_formatted = optional($invoice->inv_date)
+                ? Carbon::parse($invoice->inv_date)->format('d M Y')
                 : '-';
+
+            $invoice->payment_date_formatted = $invoice->income_date
+                ? Carbon::parse($invoice->income_date)->format('d M Y')
+                : 'UNPAID';
 
             $invoice->due_date_formatted = $invoice->due_date
-                ? Carbon::parse($invoice->due_date)->format('Y-m-d')
+                ? Carbon::parse($invoice->due_date)->format('d M Y')
                 : '-';
 
-            $invoice->po_date_formatted = $invoice->order->purchaseOrder->po_date
-                ? Carbon::parse($invoice->order->purchaseOrder->po_date)->format('Y-m-d')
+            $invoice->po_date_formatted = optional($invoice->order?->purchaseOrder?->po_date)
+                ? Carbon::parse($invoice->order->purchaseOrder->po_date)->format('d M Y')
                 : '-';
-
-            // Payment Date is the 'INC DATE'
-            $invoice->payment_date_formatted = $invoice->income_date
-                ? Carbon::parse($invoice->income_date)->format('Y-m-d')
-                : 'Not Yet';
-
-            return $invoice;
         });
 
-        return view('pages.transactions.outgoing-invoices.index', compact('outgoingInvoices'));
+        $sorted = LifecycleSorter::sort($invoices);
+
+        return view('pages.transactions.outgoing-invoices.index', [
+            'outgoingInvoices' => $this->paginateCollection($sorted),
+        ]);
     }
 
     /**
@@ -62,17 +67,13 @@ class OutgoingInvoiceController extends Controller
      */
     public function show(OutgoingInvoice $outgoingInvoice)
     {
-        // Eager load necessary relationships for the detail view
-        $outgoingInvoice->load(['client', 'order.department', 'order.purchaseOrder']);
-
-        // Transform data for display formatting
-        $outgoingInvoice->formatted_amount       = $outgoingInvoice->cur . ' ' . number_format($outgoingInvoice->amount, 0, ',', '.');
-        $outgoingInvoice->payment_date_formatted = $outgoingInvoice->payment_date
-            ? Carbon::parse($outgoingInvoice->payment_date)->format('Y-m-d')
-            : 'Not Yet';
-
-        // You may want to add other formatting here if needed for the show view
-
+        $outgoingInvoice->load([
+            'client',
+            'order.department',
+            'order.purchaseOrder',
+            'lineItems.item',
+            'lineItems.specs',
+        ]);
         return view('pages.transactions.outgoing-invoices.show', [
             'invoice' => $outgoingInvoice,
         ]);
@@ -81,82 +82,94 @@ class OutgoingInvoiceController extends Controller
     /**
      * Update multiple specified Outgoing Invoices in storage (Administrative Finalization).
      */
-    // public function massUpdate(Request $request)
-    // {
-    //     // 1. Validation for the array of invoices
-    //     $validated = $request->validate([
-    //         'invoices'              => 'required|array',
+    public function massUpdate(Request $request)
+    {
+        // 1. Validation for the array of invoices
+        $validated = $request->validate([
+            'invoices'              => 'required|array',
 
-    //         // Validation rules for each item in the 'invoices' array
-    //         'invoices.*.id'         => 'required|exists:outgoing_invoices,id',
-    //         'invoices.*.inv_number' => 'required|string|max:255',
-    //         'invoices.*.inv_date'   => 'required|date',
-    //         'invoices.*.due_date'   => 'nullable|date',
-    //         'invoices.*.fp_number'  => 'nullable|string|max:255',
-    //     ]);
+            // Validation rules for each item in the 'invoices' array
+            'invoices.*.id'         => 'required|exists:outgoing_invoices,id',
+            'invoices.*.inv_number' => 'nullable|string|max:255',
+            'invoices.*.inv_date'   => 'nullable|date',
+            'invoices.*.due_date'   => 'nullable|date',
+            'invoices.*.fp_number'  => 'nullable|string|max:255',
+        ]);
 
-    //     $invoicesUpdatedCount = 0;
+        foreach ($validated['invoices'] as $invoiceData) {
+            $fpNumber  = $invoiceData['fp_number'] ?? null;
+            $invoiceId = $invoiceData['id'];
 
-    //     // 2. Update Logic
-    //     foreach ($validated['invoices'] as $invoiceData) {
-    //         $invoiceId = $invoiceData['id'];
+            if ($fpNumber !== null) {
+                $exists = OutgoingInvoice::where('fp_number', $fpNumber)
+                    ->where('id', '!=', $invoiceId)
+                    ->exists();
 
-    //         // Remove the ID before passing to the update method
-    //         unset($invoiceData['id']);
-
-    //         $invoice = OutgoingInvoice::find($invoiceId);
-
-    //         if ($invoice) {
-    //             $invoice->update($invoiceData);
-    //             $invoicesUpdatedCount++;
-    //         }
-    //     }
-
-    //     // 3. Redirect
-    //     return redirect()->route('outgoing-invoices.index')->with('success', $invoicesUpdatedCount . ' Outgoing Invoice(s) successfully finalized and updated.');
-    // }
-public function massUpdate(Request $request)
-{
-    // 1. Validation for the array of invoices
-    $validated = $request->validate([
-        'invoices'              => 'required|array',
-
-        // Validation rules for each item in the 'invoices' array
-        'invoices.*.id'         => 'required|exists:outgoing_invoices,id',
-        'invoices.*.inv_number' => 'required|string|max:255',
-        'invoices.*.inv_date'   => 'required|date',
-        'invoices.*.due_date'   => 'nullable|date',
-        'invoices.*.fp_number'  => 'nullable|string|max:255',
-    ]);
-
-    $invoicesUpdatedCount = 0;
-
-    // 2. Optimized Update Logic
-    foreach ($validated['invoices'] as $invoiceData) {
-        
-        $invoice = OutgoingInvoice::find($invoiceData['id']);
-
-        if ($invoice) {
-            // Get the data intended for update (excluding the 'id')
-            $updatableData = collect($invoiceData)->except('id')->toArray();
-
-            // Fill the model instance with new data
-            $invoice->fill($updatableData);
-
-            // Get the changed attributes (the "dirty" columns)
-            $invoiceChanges = $invoice->getDirty();
-
-            // Only update the database if actual changes exist
-            if (!empty($invoiceChanges)) {
-                $invoice->update($invoiceChanges);
-                $invoicesUpdatedCount++;
+                if ($exists) {
+                    return back()
+                        ->withErrors(["invoices.{$invoiceId}.fp_number" => "FP Number '{$fpNumber}' is already used by another outgoing invoice."])
+                        ->withInput();
+                }
             }
         }
+
+        $invoicesUpdatedCount = 0;
+
+        // 2. Optimized Update Logic
+        foreach ($validated['invoices'] as $invoiceData) {
+
+            $invoice = OutgoingInvoice::find($invoiceData['id']);
+
+            if ($invoice) {
+                // Get the data intended for update (excluding the 'id')
+                $updatableData = collect($invoiceData)->except('id')->toArray();
+
+                // Fill the model instance with new data
+                $invoice->fill($updatableData);
+
+                // Get the changed attributes (the "dirty" columns)
+                $invoiceChanges = $invoice->getDirty();
+
+                // Only update the database if actual changes exist
+                if (! empty($invoiceChanges)) {
+                    $invoice->update($invoiceChanges);
+                    $invoicesUpdatedCount++;
+                }
+            }
+        }
+
+        if ($invoicesUpdatedCount === 0) {
+            return redirect()->route('outgoing-invoices.index')
+                ->with('info', 'No changes detected. Nothing was updated.');
+        }
+
+        // 3. Redirect
+        return redirect()->route('outgoing-invoices.index')->with('success', $invoicesUpdatedCount . ' Outgoing Invoice(s) successfully finalized and updated.');
     }
 
-    // 3. Redirect
-    return redirect()->route('outgoing-invoices.index')->with('success', $invoicesUpdatedCount . ' Outgoing Invoice(s) successfully finalized and updated (only changed fields were written).');
-}
+    public function updateField(Request $request, OutgoingInvoice $outgoingInvoice, string $field)
+    {
+
+        if (! in_array($field, ['income_date', 'fp_number'])) {
+            return response()->json(['error' => 'Invalid field'], 400);
+        }
+
+        $rules = [];
+        if ($field === 'income_date') {
+            $rules[$field] = ['nullable', 'date'];
+        } else {
+            $rules[$field] = ['nullable', 'string', 'max:255', Rule::unique('outgoing_invoices', 'fp_number')->ignore($outgoingInvoice->id)];
+        }
+
+        // This will automatically return 422 + JSON errors on failure (because it's an AJAX/XHR request)
+        $validated = $request->validate($rules);
+
+        $outgoingInvoice->update([
+            $field => $validated[$field],
+        ]);
+
+        return response()->json(['success' => true]);
+    }
 
     /**
      * Generate a single Outgoing Invoice Document as a PDF.
@@ -169,14 +182,14 @@ public function massUpdate(Request $request)
         // Format data for the PDF template
         $invoiceData = $this->formatInvoiceForDocument($outgoingInvoice);
 
-        // Generate the PDF from the blade view
-        $pdf = Pdf::loadView('documents.outgoing-invoice', ['invoice' => $invoiceData]);
-
         $safeInvNumber = Str::slug($outgoingInvoice->inv_number, '_');
-        $filename = "INV_{$safeInvNumber}.pdf";
+        $filename      = "INV_{$safeInvNumber}.xlsx";
 
         // Stream or download the PDF
-        return $pdf->download($filename);
+        return Excel::download(
+            new DocumentExport($invoiceData),
+            $filename
+        );
     }
 
     /**
@@ -184,100 +197,63 @@ public function massUpdate(Request $request)
      */
     public function generateMassDocuments(Request $request)
     {
-        // --- DEBUG LOG: START OF PROCESS ---
-        \Log::info('Batch Document Generation started.');
-
         $validated = $request->validate([
             'invoice_ids'   => 'required|array',
             'invoice_ids.*' => 'exists:outgoing_invoices,id',
         ]);
 
-        // Fetch all selected invoices
-        $invoices = OutgoingInvoice::with(['client', 'order.department', 'order.purchaseOrder', 'lineItems'])
-            ->whereIn('id', $validated['invoice_ids'])
-            ->get();
-
-        // --- DEBUG LOG: INVOICES FETCHED ---
-        \Log::info('Found ' . $invoices->count() . ' invoices for batch processing.');
+        $invoices = OutgoingInvoice::with([
+            'client',
+            'order.department',
+            'order.purchaseOrder',
+            'lineItems',
+        ])->whereIn('id', $validated['invoice_ids'])->get();
 
         if ($invoices->isEmpty()) {
-            return redirect()->back()->with('error', 'No invoices found to generate documents.');
+            return back()->with('error', 'No invoices found.');
         }
 
-        // 2. Setup file paths for temporary storage - ***CHANGED***
-        $authId = auth()->check() ? auth()->id() : 'guest';
-        $tempDir = 'temp/invoices/' . $authId . '/' . time(); // Relative path inside 'storage' disk
+        $authId      = auth()->id() ?? 'guest';
+        $tempDir     = 'temp/invoices/' . $authId . '/' . time();
         $zipFileName = 'Invoices_Batch_' . time() . '.zip';
-        // Get the ABSOLUTE path for ZipArchive
-        $zipPath = Storage::path($tempDir . '/' . $zipFileName);
+        $zipPath     = Storage::path($tempDir . '/' . $zipFileName);
 
-        // Ensure the necessary temporary directory exists in storage/app/
-        // NOTE: ZipArchive needs the directory to exist, not just the file path
-        if (!Storage::disk('local')->exists($tempDir)) {
-            Storage::disk('local')->makeDirectory($tempDir);
-        }
+        Storage::disk('local')->makeDirectory($tempDir);
 
-
-        // 3. Create the ZIP file and generate PDFs
         $zip = new ZipArchive;
-        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
-            // --- DEBUG LOG: ZIP OPEN SUCCESS ---
-            \Log::info('ZipArchive successfully opened at: ' . $zipPath);
-            
-            foreach ($invoices as $invoice) {
-                $invNum = $invoice->inv_number ?? $invoice->id;
-                $safeInvNum = Str::slug($invNum, '_');
-                $pdfFileName = "Invoice_{$safeInvNum}.pdf";
-                // --- DEBUG LOG: STARTING INDIVIDUAL PDF ---
-                \Log::info("Starting PDF generation for Invoice: $invNum (ID: {$invoice->id})");
 
-                try {
-                    // Get the structured data for the PDF view
-                    $invoiceData = $this->formatInvoiceForDocument($invoice); 
-                    
-                    // Generate PDF
-                    $pdf = Pdf::loadView('documents.outgoing-invoice', ['invoice' => $invoiceData]);
-                    
-                    // $pdfFileName = 'Invoice-' . $invNum . '.pdf';
-
-                    // Add the PDF contents directly to the ZIP
-                    $zip->addFromString($pdfFileName, $pdf->output());
-                    
-                    // --- DEBUG LOG: PDF ADDED TO ZIP ---
-                    \Log::info("Successfully added PDF $pdfFileName to ZIP.");
-
-                } catch (\Exception $e) {
-                    // --- CRITICAL LOG: PDF GENERATION FAILURE ---
-                    \Log::error("Failed to generate or add PDF for Invoice ID {$invoice->id} ($invNum): " . $e->getMessage() . "\n" . $e->getTraceAsString());
-                    
-                    // Return immediately if one PDF fails to stop the whole process and alert the user
-                    return back()->with('error', 'A critical error occurred during PDF generation for Invoice ' . $invNum . '. Check server logs for details.');
-                }
-            }
-            
-            $zip->close();
-            // --- DEBUG LOG: ZIP CLOSED ---
-            \Log::info('ZipArchive closed successfully. Total files: ' . $zip->numFiles);
-
-            // 4. Serve the ZIP file and clean up
-            if (file_exists($zipPath)) {
-                // --- DEBUG LOG: DOWNLOAD START ---
-                \Log::info('ZIP file exists. Initiating download for: ' . $zipFileName);
-
-                // Return the download response and automatically delete the file
-                return response()->download($zipPath, $zipFileName)->deleteFileAfterSend(true);
-                
-            } else {
-                // --- CRITICAL LOG: FINAL FILE MISSING ---
-                \Log::error('Final ZIP file not found after closing ZipArchive at: ' . $zipPath);
-                return back()->with('error', 'Failed to create the final ZIP file.');
-            }
-            
-        } else {
-            // --- CRITICAL LOG: ZIP OPEN FAILURE ---
-            \Log::error('Failed to open ZipArchive at: ' . $zipPath . '. Check directory permissions for ' . storage_path('app/public'));
-            return back()->with('error', 'Failed to open the ZIP file for creation. Check permissions on the storage/app/public directory.');
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            return back()->with('error', 'Unable to create ZIP file.');
         }
+
+        foreach ($invoices as $invoice) {
+            try {
+                $invoiceData = $this->formatInvoiceForDocument($invoice);
+
+                $safeInvNum = Str::slug($invoice->inv_number ?? $invoice->id, '_');
+                $fileName   = "INV_{$safeInvNum}.xlsx";
+
+                $excelBinary = Excel::raw(
+                    new DocumentExport($invoiceData),
+                    ExcelExcel::XLSX
+                );
+
+                $zip->addFromString($fileName, $excelBinary);
+            } catch (\Throwable $e) {
+                $zip->close();
+
+                return back()->with(
+                    'error',
+                    "Failed generating invoice {$invoice->inv_number}. Check logs."
+                );
+            }
+        }
+
+        $zip->close();
+
+        return response()
+            ->download($zipPath, $zipFileName)
+            ->deleteFileAfterSend(true);
     }
 
     /**
@@ -286,22 +262,22 @@ public function massUpdate(Request $request)
     protected function formatInvoiceForDocument(OutgoingInvoice $invoice)
     {
         // 1. Format Dates (Unchanged)
-        $invDate = $invoice->inv_date ? Carbon::parse($invoice->inv_date)->format('Y-m-d') : '-';
-        $dueDate = $invoice->due_date ? Carbon::parse($invoice->due_date)->format('Y-m-d') : '-';
+        $invDate = $invoice->inv_date ? Carbon::parse($invoice->inv_date)->format('d F Y') : '-';
+        $dueDate = $invoice->due_date ? Carbon::parse($invoice->due_date)->format('d F Y') : '-';
 
         // Get po_date from the nested relationship: outgoingInvoice -> order -> purchaseOrder
         $poDate = data_get($invoice, 'order.purchaseOrder.po_date')
-            ? Carbon::parse(data_get($invoice, 'order.purchaseOrder.po_date'))->format('Y-m-d')
+            ? Carbon::parse(data_get($invoice, 'order.purchaseOrder.po_date'))->format('d F Y')
             : '-';
 
         // 2. Format Financials (UPDATED LOGIC)
         // Taxable Amount (DPP) is the amount stored in the model
-        $taxableAmount = $invoice->amount; 
-        
+        $taxableAmount = $invoice->amount;
+
         // VAT (PPN 11%) is rounddown(DPP * 11%)
         // We use floor() for rounddown to the nearest integer
-        $vat = floor($taxableAmount * 0.11); 
-        
+        $vat = floor($taxableAmount * 0.11);
+
         // Total is DPP + PPN
         $totalAmount = $taxableAmount + $vat;
 
@@ -310,27 +286,27 @@ public function massUpdate(Request $request)
 
         $formattedTaxableAmount = $formatNumber($taxableAmount);
         $formattedVat           = $formatNumber($vat);
-        $formattedAmount        = $formatNumber($totalAmount); // Use the new total
+        $formattedAmount        = $formatNumber($totalAmount);
 
         // 3. Extract Items using the correct 'lineItems' relationship (UPDATED LOGIC)
         $items = $invoice->lineItems->map(function ($item, $index) use ($formatNumber) {
             $qty      = $item->quantity ?? 0;
-            $subTotal = $item->subtotal ?? 0; // Assuming this is the DPP/Taxable subtotal for the line item
-            
+            $subTotal = $item->subtotal ?? 0;
+
             // Calculate Unit Price
             $unitPrice = ($qty > 0) ? $subTotal / $qty : 0;
-            
+
             // Get item details
-            $details = data_get($item, 'item.item_name') 
-                        // Note: 'item.description' is included for robustness if you have it.
-                        ?: data_get($item, 'item.description') 
-                        ?: 'Service/Product Line Item ' . ($index + 1);
+            $details = data_get($item, 'item.item_name')
+            // Note: 'item.description' is included for robustness if you have it.
+                ?: data_get($item, 'item.description')
+                ?: 'Service/Product Line Item ' . ($index + 1);
 
             // Append Specs in the required format
             // CORRECTED: Use $item->specs, which is the belongsToMany relationship on InvoiceItem
-            if ($item->specs->isNotEmpty()) { 
-                $details .= "\nSpecs:";
-                
+            if ($item->specs->isNotEmpty()) {
+                $details .= "\nSpec:";
+
                 // CORRECTED: Loop through $item->specs
                 foreach ($item->specs as $spec) {
                     // CORRECTED: Use the 'item_description' field from the ItemSpec model
@@ -340,18 +316,17 @@ public function massUpdate(Request $request)
 
             return [
                 'no'         => $index + 1,
-                // The 'details' field now contains the name and specs separated by \n
-                'details'    => $details, 
+                'details'    => $details,
                 'quantity'   => $qty,
-                'unit'       => data_get($item, 'item.unit') ?? 'Set', 
-                'unit_price' => $formatNumber($unitPrice),
-                'sub_total'  => $formatNumber($subTotal),
+                'unit'       => data_get($item, 'item.unit') ?? 'Set',
+                'unit_price' => $unitPrice,
+                'sub_total'  => $subTotal,
             ];
         })->toArray();
 
         // 4. Convert numbers to words (UPDATED PLACEHOLDER)
         // NOTE: You must implement a proper number-to-words function for Indonesian (Terbilang)
-        $amountInWords = $this->terbilangRupiah($totalAmount); 
+        $amountInWords = $this->terbilangRupiah($totalAmount);
 
         // Return structured data (Uses $totalAmount now)
         return [

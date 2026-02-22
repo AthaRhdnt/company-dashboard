@@ -48,7 +48,7 @@ class IncomingInvoicesExport implements FromCollection, WithHeadings, WithStartR
                     'INV RCVD DATE' => $invoice->inv_received_date ? Carbon::parse($invoice->inv_received_date)->format('d-M-y') : '',
                     'INV / FP DATE' => $invoice->fp_date ? Carbon::parse($invoice->fp_date)->format('d-M-y') : '',
                     'FP S/N' => $invoice->fp_number,
-                    'MCN ORDER NO' => $invoice->order->ord_number ?? 'N/A',
+                    'MCN ORDER NO' => $invoice->order ? $invoice->order->ord_number : ($invoice->usageDepartment ? $invoice->usageDepartment->department_code : 'N/A'),
                     'CUR' => $invoice->cur ?? 'IDR',
                     'AMOUNT (IDR)' => $invoice->amount,
                     'PMT DATE' => $invoice->payment_date ? Carbon::parse($invoice->payment_date)->format('d-M-y') : '',
@@ -95,7 +95,7 @@ class IncomingInvoicesExport implements FromCollection, WithHeadings, WithStartR
                 // (Instruction Row + 1) = R[DataEnd] + 7
                 $totalRow = $dataRangeEnd + 7; 
                 
-                // ✨ FIX: The last exported row is the total row. 
+                // FIX: The last exported row is the total row. 
                 // This prevents "Invalid cell coordinate" error when data is empty.
                 $lastExportRow = $totalRow; 
 
@@ -160,7 +160,7 @@ class IncomingInvoicesExport implements FromCollection, WithHeadings, WithStartR
         $dataRangeRemarks = 'L' . self::DATA_START_ROW . ':L' . $dataRangeEnd;
 
         // A1 Content (Title)
-        $sheet->setCellValue('A1', 'LIST TAGIHAN MASUK 2025');
+        $sheet->setCellValue('A1', 'LIST TAGIHAN MASUK ' . Carbon::now()->year);
         $sheet->getStyle('A1')->applyFromArray([
             'font' => ['name' => 'Arial Black', 'size' => 20, 'color' => ['rgb' => 'C0514D']],
             'alignment' => ['vertical' => Alignment::VERTICAL_CENTER], 

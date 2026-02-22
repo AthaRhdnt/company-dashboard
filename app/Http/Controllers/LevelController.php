@@ -14,7 +14,6 @@ class LevelController extends Controller
     {
         $roles = Level::with(['users', 'permissions'])->get();
         return view('pages.management.levels.index', compact('roles'));
-        // dd($roles->toArray());
     }
 
     /**
