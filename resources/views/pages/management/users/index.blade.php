@@ -3,7 +3,6 @@
         resource="users"
         :items="$users"
         :headers="[
-            // 'id' => 'ID',
             'name' => 'Name',
             'email' => 'Email',
             'level.level_name' => 'Level'

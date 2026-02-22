@@ -14,30 +14,42 @@
                 isEditing: {{ count($errors) > 0 ? 'true' : 'false' }},
                 confirmDelete: (orderNumber) => {
                     return confirm(`Are you sure you want to delete MCN Order ${orderNumber} and ALL associated documents (Invoices, Items, PO)? This action cannot be undone.`);
+                },
+                confirmCancel: (orderNumber) => {
+                    return confirm(`Are you sure you want to cancel Order ${orderNumber}? This will set all amounts to 0.`);
                 }
             }" class="space-y-4">
 
                 {{-- TOP CONTROLS AND BUTTONS (Unchanged) --}}
-                <div class="flex justify-between items-center mb-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Orders List</h1>
+                <div class="sticky top-0 z-10 bg-white/90 backdrop-blur-md p-4 -mt-4 mb-4 rounded-xl border border-gray-200 shadow-sm transition-all duration-300 ease-in-out flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-3 md:mb-0">Orders List</h1>
                     
                     <div class="space-x-2 flex items-center">
-                        <a href="{{ route('orders.export') }}"
+                        <a x-show="!isEditing" href="{{ route('orders.export') }}"
                             class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest bg-green-600 hover:bg-green-700 transition duration-150 ease-in-out shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             Convert to Excel
                         </a>
 
-                        <a href="{{ route('orders.create') }}"
+                        <a x-show="!isEditing" href="{{ route('orders.create') }}"
                             class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest bg-blue-600 hover:bg-blue-700 transition duration-150 ease-in-out shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             Create New Order
                         </a>
+
+                        <button x-show="isEditing" type="button" @click="$refs.massUpdateForm.submit()"
+                            class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                            <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 0 1 1-1h11.586a1 1 0 0 1 .707.293l2.414 2.414a1 1 0 0 1 .293.707V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5Z"/>
+                                <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M8 4h8v4H8V4Zm7 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                            </svg>
+                            Save
+                        </button>
 
                         {{-- Toggle Button for Mass Update --}}
                         <button type="button" @click="isEditing = !isEditing"
                             x-bind:class="isEditing ? 'bg-red-500 hover:bg-red-600 focus:ring-red-500' : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'"
                             class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition ease-in-out duration-150 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2">
-                            <span x-text="isEditing ? 'Exit Mass Edit' : 'Toggle Mass Edit'"></span>
+                            <span x-text="isEditing ? 'Exit' : 'Edit Mode'"></span>
                         </button>
                     </div>
                 </div>
@@ -71,31 +83,28 @@
                 @endif
 
                 {{-- *** START MASS UPDATE FORM *** --}}
-                <form action="{{ route('orders.mass-update') }}" method="POST">
+                <form x-ref="massUpdateForm" id="massUpdateForm" action="{{ route('orders.mass-update') }}" method="POST">
                     @csrf
                     
                     <div class="mt-4 shadow-lg rounded-lg overflow-hidden overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-indigo-50 sticky top-0">
-                                <tr>
-                                    <th class="px-3 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider w-10">NO</th>
-                                    
-                                    {{-- NEW EDITABLE FIELDS ADDED/REPLACED --}}
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-40">ORDER NO</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-48">CLIENT</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-28">D-CODE</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-28">ORDER DATE</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-48">PROJECT NAME</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-36">PO NO.</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider min-w-28">PO DATE</th>
-                                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider min-w-32">AMOUNT</th>
-                                    <th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider min-w-20">CUR</th>
-
-                                    {{-- STATUS FIELDS (Static) --}}
-                                    <th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider min-w-32">OUTGOING STATUS</th>
-                                    <th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider min-w-32">INCOMING STATUS</th>
-                                    <th class="relative px-6 py-3 min-w-32">ACTIONS</th>
-                                </tr>
+<tr class="border-b border-gray-200 bg-gray-50/50">
+    <th class="px-3 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide w-10">NO</th>
+    
+    <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[10rem]">ORDER NO</th>
+    <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[12rem]">CLIENT</th>
+    <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[7rem]">D-CODE</th>
+    <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[8rem]">ORDER DATE</th>
+    <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[12rem]">PROJECT NAME</th>
+    <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[9rem]">PO NO.</th>
+    <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[8rem]">PO DATE</th>
+    <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[8rem]">AMOUNT</th>
+    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[5rem]">CUR</th>
+    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[8rem]">STATUS</th>
+    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[8rem]">REMARKS</th>
+    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-[8rem]">ACTIONS</th>
+</tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @php
@@ -104,11 +113,11 @@
                                         $startNumber = ($orders->currentPage() - 1) * $orders->perPage() + 1;
                                     }
                                 @endphp
-                                @foreach ($orders as $index => $order)
-                                    <tr class="hover:bg-gray-50">
+                                @forelse ($orders as $index => $order)
+                                    <tr class="hover:bg-gray-200">
                                         {{-- NO --}}
-                                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-500">
-                                            {{ $startNumber + $index }}</td>
+                                        <td class="px-3 py-3 whitespace-nowrap text-center text-sm text-gray-500">
+                                            {{ $startNumber + $loop->index }}
                                         
                                         {{-- Hidden Input for Order ID (REQUIRED) --}}
                                         <input x-show="isEditing" type="hidden" name="orders[{{ $order->id }}][id]"
@@ -238,14 +247,27 @@
                                         </td>
 
                                         {{-- 9. AMOUNT (NEW: Editable Number) --}}
-                                        <td class="px-2 py-2 whitespace-nowrap text-sm text-right font-bold text-green-600">
-                                            <span x-show="!isEditing">{{ $order->formatted_amount ?? '0 IDR' }}</span>
+                                        @php
+                                            $amount = $order->amount;
+                                            $amountColor = $amount > 0 ? 'text-green-600' : 'text-red-600';
+                                        @endphp
+
+                                        <td class="px-2 py-2 whitespace-nowrap text-sm text-right font-bold">
+                                            {{-- DISPLAY MODE --}}
+                                            <span x-show="!isEditing" class="{{ $amountColor }}">
+                                                {{ $order->formatted_amount ?? '0 IDR' }}
+                                            </span>
                                             <input x-show="isEditing" type="text"
                                                 name="orders[{{ $order->id }}][amount]"
-                                                value="{{ old('orders.' . $order->id . '.amount', $order->amount) }}"
-                                                x-bind:class="isEditing ? 'bg-yellow-100 border-2 border-yellow-500 focus:border-yellow-600 focus:ring-yellow-400' : 'border-gray-300 focus:border-indigo-300 focus:ring-indigo-200'"
+                                                value="{{ old('orders.' . $order->id . '.amount', $amount) }}"
+                                                x-bind:class="isEditing
+                                                    ? 'bg-yellow-100 border-2 border-yellow-500 focus:border-yellow-600 focus:ring-yellow-400'
+                                                    : 'border-gray-300 focus:border-indigo-300 focus:ring-indigo-200'
+                                                "
                                                 class="w-full text-sm rounded-md shadow-sm p-1 transition duration-150 focus:ring focus:ring-opacity-50 text-right"
-                                                placeholder="Amount" :required="isEditing">
+                                                placeholder="Amount"
+                                                :required="isEditing">
+
                                             @error('orders.' . $order->id . '.amount')
                                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                             @enderror
@@ -271,22 +293,34 @@
                                             @enderror
                                         </td>
 
-                                        {{-- 11. OUTGOING STATUS (Static) --}}
+                                        {{-- 11. STATUS (Static) --}}
                                         <td class="px-6 py-4 whitespace-nowrap text-center text-xs">
                                             <span
                                                 class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                @if ($order->outgoing_status == 'COMPLETED') bg-green-100 text-green-800 @else bg-yellow-100 text-yellow-800 @endif">
-                                                {{ $order->outgoing_status ?? 'PENDING' }}
+                                                @if ($order->transaction_status === 'Completed') 
+                                                    bg-green-100 text-green-800 
+                                                @elseif ($order->transaction_status === 'Cancelled')
+                                                    bg-red-100 text-red-800
+                                                @else
+                                                    bg-yellow-100 text-yellow-800 
+                                                @endif">
+                                                {{ $order->transaction_status }}
                                             </span>
                                         </td>
-                                        
-                                        {{-- 12. INCOMING STATUS (Static) --}}
-                                        <td class="px-6 py-4 whitespace-nowrap text-center text-xs">
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                @if ($order->incoming_status == 'PAID') bg-blue-100 text-blue-800 @else bg-red-100 text-red-800 @endif">
-                                                {{ $order->incoming_status ?? 'N/A' }}
-                                            </span>
+
+                                        {{-- 12. REMARKS --}}
+                                        <td class="px-6 py-4 whitespace-nowrap text-left text-xs">
+                                            <span x-show="!isEditing"
+                                                class="truncate max-w-sm block">{{ $order->remark ?? '-' }}</span>
+                                            <input x-show="isEditing" type="text"
+                                                name="orders[{{ $order->id }}][remark]"
+                                                value="{{ old('orders.' . $order->id . '.remark', $order->remark) }}"
+                                                x-bind:class="isEditing ? 'bg-yellow-100 border-2 border-yellow-500 focus:border-yellow-600 focus:ring-yellow-400' : 'border-gray-300 focus:border-indigo-300 focus:ring-indigo-200'"
+                                                class="w-full text-sm rounded-md shadow-sm p-1 transition duration-150 focus:ring focus:ring-opacity-50"
+                                                placeholder="Remark(s)">
+                                            @error('orders.' . $order->id . '.remark')
+                                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                            @enderror
                                         </td>
 
                                         {{-- 13. ACTIONS (Show and Delete) --}}
@@ -299,28 +333,30 @@
 
                                                 <span x-show="!isEditing" class="text-gray-300">|</span>
 
-                                                {{-- Button to trigger the separate, non-nested delete form --}}
-                                                <button type="button" x-show="!isEditing"
-                                                    @click="if (confirmDelete('{{ $order->ord_number }}')) { $refs.deleteForm_{{ $order->id }}.submit() }"
-                                                    class="text-red-600 hover:text-red-900 transition duration-150 ease-in-out font-semibold">
-                                                    Delete
-                                                </button>
-
-                                                <span x-show="isEditing" class="text-gray-400 font-medium">Mass Edit</span>
+                                                {{-- If CANCELLED (amount == 0), disable cancel button --}}
+                                                @if ($order->amount == 0 && Str::contains(strtolower($order->remark), 'cancelled'))
+                                                    <span class="text-gray-400 font-semibold cursor-not-allowed">Cancel</span>
+                                                @else
+                                                    {{-- Active Cancel button --}}
+                                                    <button type="button" x-show="!isEditing"
+                                                        @click="if (confirmCancel('{{ $order->ord_number }}')) { $refs.deleteForm_{{ $order->id }}.submit() }"
+                                                        class="text-red-600 hover:text-red-900 transition duration-150 ease-in-out font-semibold">
+                                                        Cancel
+                                                    </button>
+                                                    <span x-show="isEditing" class="text-gray-400 font-medium">Mass Edit</span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="13" class="px-4 py-6 text-center text-sm text-gray-500">
+                                            No data available.
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
-                    </div>
-
-                    {{-- Save Button (Inside the mass update form) --}}
-                    <div x-show="isEditing" class="mt-4 flex justify-end">
-                        <button type="submit"
-                            class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                            Save All Edited Orders
-                        </button>
                     </div>
                 </form>
                 {{-- *** END MASS UPDATE FORM *** --}}
@@ -328,9 +364,9 @@
                 
                 {{-- *** INDIVIDUAL DELETE FORMS (OUTSIDE THE MASS UPDATE FORM) *** --}}
                 @foreach ($orders as $order)
-                    <form x-ref="deleteForm_{{ $order->id }}" action="{{ route('orders.destroy', $order) }}" method="POST" class="hidden">
+                    <form x-ref="deleteForm_{{ $order->id }}" action="{{ route('orders.cancel', $order) }}" method="POST" class="hidden">
                         @csrf
-                        @method('DELETE')
+                        @method('PATCH')
                     </form>
                 @endforeach
                 

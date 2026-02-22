@@ -26,7 +26,6 @@
             Add New Spec
         </x-primary-button>
         
-        {{-- @push('scripts') --}}
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 // Start the index for *new* specs after the existing ones
@@ -62,6 +61,5 @@
                 });
             });
         </script>
-        {{-- @endpush --}}
     </x-pages.form>
 </x-app-layout>

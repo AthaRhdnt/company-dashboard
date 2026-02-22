@@ -1,8 +1,22 @@
 @props(['resource', 'action' => 'store', 'item' => null])
 
 <x-pages.layout>
+    @php
+        // 1. Determine the clean display name
+        $displayName = str(Str::singular($resource))->headline();
+        
+        // Override the display name if the resource is 'incoming-invoices'
+        if ($resource === 'incoming-invoices') {
+            $displayName = 'Invoice';
+        }
+
+        // 2. Route calculation: This MUST use the original $resource 
+        // to ensure the route names (like 'incoming-invoices.store') are correct.
+        $route = ($action === 'store') ? route($resource . '.store') : route($resource . '.update', $item->id);
+    @endphp
+
     <h1 class="text-2xl font-bold text-gray-800 mb-6 capitalize">
-        {{ $action === 'store' ? 'Create New' : 'Edit' }} {{ str(Str::singular($resource))->headline() }}
+        {{ $action === 'store' ? 'Create New' : 'Edit' }} {{ $displayName }}
     </h1>
 
     @php
@@ -22,7 +36,7 @@
                 Cancel
             </a>
             <x-secondary-button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                {{ $action === 'store' ? 'Create' : 'Update' }} {{ str(Str::singular($resource))->headline() }}
+                {{ $action === 'store' ? 'Create' : 'Update' }} {{ $displayName }}
             </x-secondary-button>
         </div>
     </form>

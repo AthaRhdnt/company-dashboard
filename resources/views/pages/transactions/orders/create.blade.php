@@ -1,337 +1,280 @@
 <x-app-layout>
     <x-pages.form resource="orders" action="store" :item="null">
-
         <div class="space-y-6 max-w-4xl mx-auto">
-
-            {{-- SECTION 0: BASED ON ORDER --}}
-<div class="p-6 bg-blue-50 shadow-xl rounded-lg border-t-4 border-blue-500 mb-6">
-    <h2 class="text-2xl font-bold mb-4 text-blue-800 border-b pb-2">Order Reference</h2>
-    <div class="flex items-center space-x-4">
-        <label class="inline-flex items-center">
-            <input type="checkbox" id="based_on_order_checkbox" class="form-checkbox text-blue-600">
-            <span class="ml-2 text-gray-700 font-medium">Based on Order:</span>
-        </label>
-
-        <select id="based_on_order_select"
-            class="hidden mt-1 block w-80 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-            <option value="">Select Order Number</option>
-            @foreach ($orders as $order)
-                <option value="{{ $order->id }}">{{ $order->ord_number }}</option>
-            @endforeach
-        </select>
-    </div>
-    <p class="text-xs text-gray-500 mt-2">
-        If checked, selecting an order will auto-fill client, department, currency, and project name fields.
-    </p>
-</div>
-
-
-            {{-- SECTION 1: CORE ORDER & PO DETAILS --}}
-            <div class="p-6 bg-white shadow-xl rounded-lg border-t-4 border-indigo-500 mb-6">
-                <h2 class="text-2xl font-bold mb-4 text-indigo-800 border-b pb-2">Core Order Details</h2>
-                {{-- <div class="mb-6 border-b pb-4">
-                    <div class="flex items-center space-x-2">
-                        <input type="checkbox" id="based_on_order" 
-                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <x-input-label for="based_on_order" value="{{ __('Based on Existing Order:') }}" class="cursor-pointer" />
-                    </div>
-
-                    <div id="existing-order-dropdown-container" class="mt-3 hidden">
-                        <x-input-label for="existing_order_id" value="{{ __('Select Order Number') }}" />
-                        <select id="existing_order_id" name="existing_order_id"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                            <option value="">-- Select Order --</option>
-                            @foreach ($existingOrders as $order)
-                                <option value="{{ $order->id }}">{{ $order->ord_number }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+            {{-- FLASH MESSAGES & ERRORS --}}
+            @if (session('success'))
+                <div x-data="{ showMessage: true }" x-show="showMessage" x-transition.opacity
+                    class="p-4 mb-4 bg-green-100 text-green-700 rounded-md border border-green-200 flex justify-between items-start">
+                    <span>{{ session('success') }}</span>
+                    <button type="button" @click="showMessage = false"
+                        class="ml-4 -mt-1 p-1 rounded-full text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-600/50">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6"> --}}
-                    {{-- Core Order Inputs --}}
-                    <div>
-                        <x-input-label for="client_id" :value="__('Client')" />
-                        <select id="client_id" name="client_id"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                            @foreach ($clients as $client)
-                                <option value="{{ $client->id }}">{{ $client->client_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <x-input-label for="order_no" :value="__('MCN Order Number')" />
-                        <x-text-input id="order_no" name="order_no" type="text" class="mt-1 block w-full"
-                            :value="old('order_no')" required />
-                    </div>
-                    <div>
-                        <x-input-label for="ord_date" :value="__('Order Date')" />
-                        <x-text-input id="ord_date" name="ord_date" type="date" class="mt-1 block w-full"
-                            :value="old('ord_date', now()->format('Y-m-d'))" required />
-                    </div>
-                    <div class="md:col-span-3">
-                        <x-input-label for="project_name" :value="__('Project Name')" />
-                        <x-text-input id="project_name" name="project_name" type="text" class="mt-1 block w-full"
-                            :value="old('project_name')" />
-                    </div>
-
-                    {{-- PO Details --}}
-                    <div>
-                        <x-input-label for="po_number" :value="__('Customer PO Number')" />
-                        <x-text-input id="po_number" name="po_number" type="text" class="mt-1 block w-full"
-                            :value="old('po_number')" required />
-                    </div>
-                    <div>
-                        <x-input-label for="po_date" :value="__('PO Date')" />
-                        <x-text-input id="po_date" name="po_date" type="date" class="mt-1 block w-full"
-                            :value="old('po_date')" required />
-                    </div>
+            @endif
+            @if (session('error') || $errors->any())
+                <div x-data="{ showMessage: true }" x-show="showMessage" x-transition.opacity
+                    class="p-4 mb-4 bg-red-100 text-red-700 rounded-md border border-red-200 flex justify-between items-start">
+                    <span>{{ session('error') }}</span>
+                    <button type="button" @click="showMessage = false"
+                        class="ml-4 -mt-1 p-1 rounded-full text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-600/50">
+                        {{-- SVG Cross Icon --}}
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
+        </div>
+        @endif
+
+        {{-- Order Reference --}}
+        <div class="p-6 bg-blue-50 shadow-xl rounded-lg border-t-4 border-blue-500 mb-6">
+            <h2 class="text-2xl font-bold mb-4 text-blue-800 border-b pb-2">Order Reference</h2>
+            <div class="flex items-center space-x-4">
+                <label class="inline-flex items-center">
+                    <input type="checkbox" id="based_on_order_checkbox" class="form-checkbox text-blue-600">
+                    <span class="ml-2 text-gray-700 font-medium">Based on Order:</span>
+                </label>
+                <select id="based_on_order_select"
+                    class="hidden mt-1 block w-80 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    style="padding: 0 .75rem">
+                    <option value="">Select Order Number</option>
+                    @foreach ($orders as $order)
+                        <option value="{{ $order->id }}">{{ $order->ord_number }} | {{ $order->project_name }}</option>
+                    @endforeach
+                </select>
             </div>
+            <p class="text-xs text-gray-500 mt-2">
+                If checked, selecting an order will auto-fill client, department, currency, and project name fields.
+            </p>
+        </div>
 
-            {{-- SECTION 2: FINANCIALS & COST CALCULATION (INPUTS BEFORE TAXES) --}}
-            <div class="p-6 bg-yellow-50 shadow-xl rounded-lg border-t-4 border-yellow-500 mb-6">
-                <h2 class="text-2xl font-bold mb-4 text-yellow-800 border-b pb-2">Financials & Cost Calculation</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-
-                    {{-- Revenue Input (Base for all calculations) --}}
-                    <div>
-                        <x-input-label for="total_customer_payment" :value="__('Payment (Revenue)')" />
-                        <x-text-input id="total_customer_payment" name="total_customer_payment" type="text"
-                            step="0.01" class="mt-1 block w-full bg-green-100 font-semibold" :value="old('total_customer_payment')"
-                            required />
-                    </div>
-
-                    {{-- Agreement Fee Input --}}
-                    <div>
-                        <x-input-label for="agreement_percentage" :value="__('Agreement Fee (%)')" />
-                        <x-text-input id="agreement_percentage" name="agreement_percentage" type="number"
-                            step="0.01" class="mt-1 block w-full" :value="old('agreement_percentage', 4.0)" required />
-                    </div>
-
-                    {{-- Currency Input --}}
-                    <div>
-                        <x-input-label for="cur" :value="__('Currency')" />
-                        <x-text-input id="cur" name="cur" type="text" class="mt-1 block w-full"
-                            :value="old('cur', 'IDR')" required />
-                    </div>
-
-                    {{-- Vendor Selection --}}
-                    <div>
-                        <x-input-label for="vendor_id" :value="__('Vendor (Cost Side)')" />
-                        <select id="vendor_id" name="vendor_id" class="form-select mt-1 block w-full">
-                            @foreach ($vendors as $vendor)
-                                <option value="{{ $vendor->id }}">{{ $vendor->vendor_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Department (D-Code) --}}
-                    <div>
-                        <x-input-label for="department_id" :value="__('Department (D-Code)')" />
-                        <select id="department_id" name="department_id" class="form-select mt-1 block w-full">
-                            @foreach ($departments as $department)
-                                <option value="{{ $department->id }}">{{ $department->department_code }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {{-- SECTION 3: TAX SELECTION AND VENDOR AMOUNT DISPLAY (THE CRUCIAL PART) --}}
-            <div class="p-6 bg-yellow-100 shadow-xl rounded-lg border-t-4 border-red-500 mb-6">
-                <h3 class="text-xl font-semibold mb-4 text-red-800 border-b pb-2">Taxes & Final Vendor Amount</h3>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                    {{-- Outgoing Taxes (For Documentation) --}}
-                    <div>
-                        <x-input-label :value="__('Outgoing Tax Toggles (Documentation)')" />
-                        @foreach ($taxes as $tax)
-                            <label for="out-tax-{{ $tax->id }}" class="flex items-center mt-2">
-                                <input type="checkbox" name="outgoing_tax_ids[]" value="{{ $tax->id }}"
-                                    id="out-tax-{{ $tax->id }}" class="form-checkbox">
-                                <span class="ml-2 text-sm text-gray-600">{{ $tax->tax_name }}</span>
-                            </label>
+        {{-- Core Order Details --}}
+        <div class="p-6 bg-white shadow-xl rounded-xl border-t-4 border-indigo-500">
+            <h2 class="text-2xl font-bold text-indigo-800 pb-3 border-b">Core Order Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div>
+                    <x-input-label for="client_id" value="Client" />
+                    <select id="client_id" name="client_id"
+                        class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-300"
+                        style="padding: .5rem .75rem">
+                        <option value="">Select Client</option>
+                        @foreach ($clients as $client)
+                            <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
+                                {{ $client->client_name }}
+                            </option>
                         @endforeach
-                    </div>
+                    </select>
+                </div>
 
-                    {{-- Incoming Taxes (For Cost Calculation) --}}
-                    <div>
-                        <x-input-label :value="__('Incoming Taxes (Used for Cost Calculation)')" />
-                        <p class="text-xs text-gray-500 mb-2">Select taxes to apply the multiplicative reduction.</p>
-                        @foreach ($taxes as $tax)
-                            <label for="in-tax-{{ $tax->id }}"
-                                class="flex items-center mt-2 p-1 rounded hover:bg-yellow-200 transition">
-                                <input type="checkbox" name="incoming_tax_ids[]" value="{{ $tax->id }}"
-                                    id="in-tax-{{ $tax->id }}" {{-- CRUCIAL: Pass the percentage to the JavaScript --}}
-                                    data-percentage="{{ $tax->tax_percentage }}"
-                                    class="form-checkbox calculation-input">
-                                <span class="ml-2 text-sm font-medium text-gray-700">{{ $tax->tax_name }}
-                                    ({{ number_format($tax->tax_percentage, 2) }}% Reduction)
-                                </span>
-                            </label>
+                <div>
+                    <x-input-label for="ord_number" value="MCN Order Number" />
+                    <x-text-input id="ord_number" name="ord_number" type="text" class="mt-1 block w-full"
+                        :value="old('ord_number', $suggestedOrderNumber)" required />
+                </div>
+
+                <div>
+                    <x-input-label for="ord_date" value="Order Date" />
+                    <x-text-input id="ord_date" name="ord_date" type="date" class="mt-1 block w-full"
+                        :value="old('ord_date', now()->format('Y-m-d'))" required />
+                </div>
+
+                <div>
+                    <x-input-label for="project_name" value="Project Name" />
+                    <x-text-input id="project_name" name="project_name" type="text" class="mt-1 block w-full"
+                        :value="old('project_name')" />
+                </div>
+
+                <div>
+                    <x-input-label for="po_number" value="Customer PO Number" />
+                    <x-text-input id="po_number" name="po_number" type="text" class="mt-1 block w-full"
+                        :value="old('po_number')" required />
+                </div>
+
+                <div>
+                    <x-input-label for="po_date" value="PO Date" />
+                    <x-text-input id="po_date" name="po_date" type="date" class="mt-1 block w-full"
+                        :value="old('po_date')" required />
+                </div>
+
+                <div>
+                    <x-input-label for="department_id" value="D-Code" />
+                    <select id="department_id" name="department_id"
+                        class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-300"
+                        style="padding: .5rem .75rem">
+                        <option value="">Select Dept.</option>
+                        @foreach ($departments as $department)
+                            <option value="{{ $department->id }}"
+                                {{ old('department_id') == $department->id ? 'selected' : '' }}>
+                                {{ $department->department_code }}
+                            </option>
                         @endforeach
-                    </div>
+                    </select>
+                </div>
 
-                    {{-- Final Vendor Amount (The Requested Output) --}}
-                    <div class="md:border-l md:pl-6 pt-4 md:pt-0">
-                        <x-input-label :value="__('Final Vendor Amount (Cost)')" />
-                        <div class="mt-2 p-5 bg-red-100 border-4 border-red-500 rounded-lg shadow-2xl">
-                            <p id="vendor-amount-display"
-                                class="mt-1 text-xl font-extrabold text-red-700 tracking-tight">
-                                0.00
-                            </p>
+                <div>
+                    <x-input-label for="cur" value="Currency" />
+                    <x-text-input id="cur" name="cur" type="text" class="mt-1 block w-full"
+                        :value="old('cur', 'IDR')" required />
+                </div>
 
-                            {{-- This hidden field carries the calculated value for the store function --}}
-                            <input type="hidden" id="amount" name="amount" value="0.00">
-                            <p class="text-xs text-red-900 mt-2">Value submitted to `incoming_invoices.amount`</p>
-                        </div>
-                    </div>
+                <div class="md:col-span-3">
+                    <x-input-label for="remark" value="Remarks" />
+                    <x-text-input id="remark" name="remark" type="text" class="mt-1 block w-full"
+                        :value="old('remark')" />
                 </div>
             </div>
+        </div>
 
-            {{-- SECTION 4: DYNAMIC INVOICE ITEMS --}}
-            <div class="p-6 bg-gray-50 shadow-xl rounded-lg border-t-4 border-purple-500 mb-6">
-                <h3 class="text-xl font-bold mb-4 text-purple-800 border-b pb-2">Ordered Items & Specifications</h3>
+        {{-- Ordered Items & Specifications --}}
+        <div class="p-6 bg-gray-50 shadow-xl rounded-xl border-t-4 border-purple-500 mb-10">
+            <h2 class="text-2xl font-bold text-purple-800 border-b pb-3 mb-6">
+                Ordered Items & Specifications
+            </h2>
 
-                {{-- BUTTONS FOR SHORTCUTS --}}
-                <div class="flex space-x-3 mb-4">
-                    <x-secondary-button type="button" onclick="showItemModal()">
-                        {{ __('Quick Add Item') }}
-                    </x-secondary-button>
-                    <x-secondary-button type="button" onclick="showSpecModal()">
-                        {{ __('Quick Add Specification') }}
-                    </x-secondary-button>
-                </div>
+            <div class="flex space-x-3 mb-6">
+                <x-secondary-button type="button" onclick="showItemModal()">
+                    {{ __('Quick Add Item') }}
+                </x-secondary-button>
+                <x-secondary-button type="button" onclick="showSpecModal()">
+                    {{ __('Quick Add Specification') }}
+                </x-secondary-button>
+            </div>
 
-                <table class="min-w-full divide-y divide-gray-200" id="invoice-items-table">
-                    <thead>
-                        <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100">
-                            <th class="px-3 py-3">Item</th>
-                            <th class="px-3 py-3 w-20">Quantity</th>
-                            <th class="px-3 py-3">Unit Price</th>
-                            <th class="px-3 py-3">
-                                Subtotal (Revenue Base)
-                                <label class="block font-normal normal-case text-gray-600 text-[10px] mt-1">
-                                    <input type="checkbox" id="subtotal-override-toggle"
-                                        onclick="toggleSubtotalOverride(this.checked)">
-                                    Override?
-                                </label>
+            <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+                <table class="min-w-full text-sm" id="invoice-items-table">
+                    <thead class="bg-gray-100 text-gray-600 uppercase text-xs tracking-wide">
+                        <tr class="text-left">
+                            <th class="px-4 py-3 min-w-[150px] font-medium">Item</th>
+                            <th class="px-4 py-3 w-20 font-medium">Quantity</th>
+                            <th class="px-4 py-3 w-32 font-medium">Unit Price</th>
+                            <th class="px-4 py-3 w-32 font-medium">
+                                Subtotal
                             </th>
-                            <th class="px-3 py-3">Specs (Optional)</th>
-                            <th class="px-3 py-3 w-10">Action</th>
+                            <th class="px-4 py-3 min-w-[270px] font-medium">
+                                <div>
+                                    Specs
+                                    <span class="mt-0.5 block text-[9px] font-medium text-red-500 leading-tight">Please
+                                        Select</span>
+                                </div>
+                            </th>
+                            <th class="px-2 py-2 w-10 font-medium text-center">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200" id="invoice-items-body">
-                        {{-- ITEM TEMPLATE ROW (Hidden, will be cloned by JS) --}}
-                        <tr id="item-row-template" class="item-row" style="display: none;">
-                            <td class="px-3 py-3">
+
+                    <tbody id="invoice-items-body" class="divide-y divide-gray-100 bg-white">
+                        <tr id="item-row-template" class="item-row hidden">
+                            <td class="px-4 py-3">
                                 <select name="items[_INDEX_][item_id]"
                                     onchange="updateSubtotal(this.closest('tr')); filterSpecs(this);"
-                                    class="mt-1 block w-full rounded-md border-gray-300 item-select" required disabled>
+                                    class="w-full rounded-md border-gray-300 shadow-sm item-select focus:ring-purple-300 focus:border-purple-400 py-2.5 px-3"
+                                    required disabled>
                                     <option value="">Select Item</option>
                                     @foreach ($items as $item)
                                         <option value="{{ $item->id }}">{{ $item->item_name }}</option>
                                     @endforeach
                                 </select>
                             </td>
-                            <td class="px-3 py-3">
+                            <td class="px-4 py-3 text-center">
                                 <input type="number" name="items[_INDEX_][quantity]" min="1" value="1"
                                     oninput="updateSubtotal(this.closest('tr'))"
-                                    class="mt-1 block w-full rounded-md border-gray-300 quantity-input" required disabled>
+                                    class="w-full rounded-md border-gray-300 shadow-sm quantity-input bg-gray-50 focus:ring-purple-300 focus:border-purple-400 py-2 px-2 text-center"
+                                    required disabled>
                             </td>
-
-                            {{-- UNIT PRICE COLUMN (Readonly, just shows item price) --}}
-                            <td class="px-3 py-3">
+                            <td class="px-4 py-3 text-right">
                                 <input type="text" name="items[_INDEX_][unit_price]" step="0.01"
                                     min="0" readonly
-                                    class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 unit-price-input"
+                                    class="w-full rounded-md border-gray-300 bg-gray-100 shadow-sm unit-price-input py-2 px-3 text-right"
                                     value="0.00">
                             </td>
-
-                            {{-- SUBTOTAL COLUMN (Editable, shows calculated price * qty by default) --}}
-                            <td class="px-3 py-3">
+                            <td class="px-4 py-3 text-right">
                                 <input type="text" name="items[_INDEX_][subtotal]" step="0.01" min="0"
-                                    readonly style="background-color: #f7f7f7;" oninput="calculateVendorCost()"
-                                    class="mt-1 block w-full rounded-md border-gray-300 subtotal-input" required disabled>
+                                    readonly oninput="calculateVendorCost()"
+                                    class="w-full rounded-md border-gray-300 bg-gray-100 shadow-sm subtotal-input py-2 px-3 text-right"
+                                    required disabled>
                             </td>
-                            <td class="px-3 py-3">
-                                <select name="items[_INDEX_][item_spec_ids][]"
-                                    class="mt-1 block w-full rounded-md border-gray-300 spec-select select2-enabled"
-                                    multiple disabled>
+                            <td class="px-4 py-3">
+                                <select name="items[_INDEX_][item_spec_ids][]" multiple disabled
+                                    class="w-full rounded-md border-gray-300 shadow-sm spec-select select2-enabled focus:ring-purple-300 focus:border-purple-400 py-2 px-3">
                                 </select>
                             </td>
-                            <td class="px-3 py-3">
+                            <td class="px-2 py-2 text-center">
                                 <button type="button" onclick="removeItem(this)"
-                                    class="text-red-600 hover:text-red-900 font-semibold text-sm">Remove</button>
+                                    class="text-red-600 hover:text-red-800 font-semibold text-xs p-1">
+                                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+                                        width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z" />
+                                    </svg>
+                                </button>
                             </td>
                         </tr>
-                        {{-- ACTUAL ITEM ROWS WILL BE INSERTED HERE BY JS --}}
                     </tbody>
                 </table>
+            </div>
 
-                <div class="mt-4">
-                    <x-secondary-button type="button"
-                        onclick="addItem()">{{ __('Add Item Row') }}</x-secondary-button>
+            <input type="hidden" id="total_customer_payment" name="total_customer_payment"
+                value="{{ old('total_customer_payment', '0') }}">
+            <input type="hidden" id="amount" name="amount" value="{{ old('amount', '0') }}">
+
+            <div class="mt-5">
+                <x-secondary-button type="button" onclick="addItem()" class="gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {{ __('Add Item Row') }}
+                </x-secondary-button>
+
+                <div class="mt-5">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="is_pph23_prepaid" value="1"
+                            {{ old('is_pph23_prepaid') ? 'checked' : '' }} class="form-checkbox">
+                        <span class="ml-3 text-sm font-medium text-gray-700">Prepaid PPh23 (2%)</span>
+                    </label>
                 </div>
             </div>
         </div>
+        </div>
 
-        {{-- JAVASCRIPT FOR LIVE CALCULATION (TIDIED) --}}
         <script>
             const itemSpecsMap = @json($items);
-            let itemIndex = 0; // Global counter to track the item index
+            let itemIndex = 0;
             let isSubtotalOverridden = false;
+            let toastTimeout;
 
-            // ------------------------------------------------------------------
-            // HELPER FUNCTIONS FOR FORMATTING (FIXED: Manual 'Rp' prepending)
-            // ------------------------------------------------------------------
+            function initializeSelect2IfAvailable(element) {
+                if (typeof jQuery !== 'undefined' && jQuery.fn.select2 && !element.hasAttribute('data-select2-id')) {
+                    $(element).select2({
+                        placeholder: "Select specifications",
+                        allowClear: true
+                    });
+                }
+            }
 
-            /**
-             * Formats a raw number for display in the input fields (e.g., 10000000 -> 10,000,000.00).
-             * If isCurrency is true, it prepends the "Rp" symbol WITHOUT A SPACE to prevent overflow.
-             */
+            // Formatting
             function formatForInput(value, isCurrency = false) {
-                // Ensure the fallback value is "Rp0.00" (no space) for consistency
                 if (isNaN(value) || value === null) return isCurrency ? 'Rp0.00' : '0.00';
-
-                const options = {
-                    // Use US formatting style (comma for thousands, dot for decimals) for consistency
+                const formatter = new Intl.NumberFormat('en-US', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
-                };
-
-                // Use standard number format (this generates '960,000,000.00')
-                const formatter = new Intl.NumberFormat('en-US', options);
+                });
                 let formatted = formatter.format(value);
-
-                if (isCurrency) {
-                    // Manually prepend 'Rp' without a space to create the desired format (e.g., Rp960,000,000.00)
-                    formatted = 'Rp' + formatted;
-                }
-
+                if (isCurrency) formatted = 'Rp' + formatted;
                 return formatted;
             }
 
-            /**
-             * Strips formatting to get the raw numeric value (e.g., 10,000,000.00 -> 10000000).
-             */
             function parseForCalculation(formattedValue) {
-                // Remove all commas and the 'Rp' prefix if present.
                 const cleanString = String(formattedValue).replace(/Rp/g, '').replace(/,/g, '').trim();
                 return parseFloat(cleanString) || 0;
             }
 
-            // ------------------------------------------------------------------
-            // UI STATE HELPER
-            // ------------------------------------------------------------------
-
-            /**
-             * Sets the readonly state and background style for a subtotal input.
-             * @param {HTMLElement} input - The subtotal input element.
-             * @param {boolean} isChecked - Whether the override is enabled.
-             */
+            // UI
             function setSubtotalInputState(input, isChecked) {
                 if (isChecked) {
                     input.removeAttribute('readonly');
@@ -342,24 +285,23 @@
                 }
             }
 
-            // ------------------------------------------------------------------
-            // SUBTOTAL OVERRIDE LOGIC (TIDIED)
-            // ------------------------------------------------------------------
             function toggleSubtotalOverride(isChecked) {
                 isSubtotalOverridden = isChecked;
                 document.querySelectorAll('.subtotal-input').forEach(input => {
-                    setSubtotalInputState(input, isChecked); // Use the new helper
-                    if (!isChecked) {
-                        updateSubtotal(input.closest('tr')); // Recalculate when override is disabled
+                    setSubtotalInputState(input, isChecked);
+                    if (isChecked) {
+                        input.classList.remove('bg-gray-100');
+                        input.classList.add('focus:ring-purple-300', 'focus:border-purple-400');
+                    } else {
+                        input.classList.add('bg-gray-100');
+                        input.classList.remove('focus:ring-purple-300', 'focus:border-purple-400');
+                        updateSubtotal(input.closest('tr'));
                     }
                 });
             }
 
-            // ------------------------------------------------------------------
-            // MODAL FUNCTIONS (CLEANED UP)
-            // ------------------------------------------------------------------
+            // Modals
             function showItemModal() {
-                // NOTE: Replace alert() with a custom modal UI as per guidelines.
                 document.getElementById('item-modal').style.display = 'flex';
             }
 
@@ -367,10 +309,6 @@
                 document.getElementById('item-modal').style.display = 'none';
             }
 
-            /**
-             * The canonical and only definition of showSpecModal.
-             * Ensures at least one input field is present when the modal opens.
-             */
             function showSpecModal() {
                 document.getElementById('spec-modal').style.display = 'flex';
                 const container = document.getElementById('spec-inputs-container');
@@ -383,89 +321,59 @@
                 document.getElementById('spec-modal').style.display = 'none';
             }
 
-            // ------------------------------------------------------------------
-            // CORE CALCULATION LOGIC
-            // ------------------------------------------------------------------
+            function showSuccessToast(message) {
+                const toast = document.getElementById('success-toast');
+                const text = document.getElementById('success-toast-message');
+
+                text.textContent = message;
+                toast.classList.remove('translate-x-full', 'opacity-0');
+                toast.classList.add('translate-x-0', 'opacity-100');
+
+                // Hide after delay
+                toastTimeout = setTimeout(() => {
+                    toast.classList.remove('translate-x-0', 'opacity-100');
+                    toast.classList.add('translate-x-full', 'opacity-0');
+                }, 2500);
+            }
+
+            // Calculations
             function updateSubtotal(row) {
                 const itemSelect = row.querySelector('.item-select');
                 const quantityInput = row.querySelector('.quantity-input');
                 const unitPriceInput = row.querySelector('.unit-price-input');
                 const subtotalInput = row.querySelector('.subtotal-input');
-
                 const selectedItemId = itemSelect.value;
-                // NOTE: quantity input value does not need parseForCalculation if it's type="number"
                 const quantity = parseFloat(quantityInput.value) || 0;
-
                 const itemData = itemSpecsMap.find(item => item.id == selectedItemId);
-                // Use itemData.item_price as the unit price source
                 const unitPrice = itemData ? (parseFloat(itemData.item_price) || 0) : 0;
                 const calculatedSubtotal = unitPrice * quantity;
 
-                // Unit Price is displayed and formatted (not currency, just number)
                 unitPriceInput.value = formatForInput(unitPrice, false);
-
                 if (!isSubtotalOverridden) {
-                    // Only update the subtotal if it hasn't been manually overridden
-                    // Subtotal should also be just number formatting, not currency ('Rp')
                     subtotalInput.value = formatForInput(calculatedSubtotal, false);
                 }
-
-                calculateVendorCost();
             }
 
             function calculateVendorCost() {
                 const totalPaymentInput = document.getElementById('total_customer_payment');
-                const agreementPercentInput = document.getElementById('agreement_percentage');
-                const incomingTaxCheckboxes = document.querySelectorAll('input[name="incoming_tax_ids[]"]');
-                const vendorAmountDisplay = document.getElementById('vendor-amount-display');
                 const amountHiddenInput = document.getElementById('amount');
-
-                // Parse the display value of the input, which might have commas
                 const totalPayment = parseForCalculation(totalPaymentInput.value);
-                const agreementPercent = parseFloat(agreementPercentInput.value) || 0;
-
                 if (totalPayment <= 0) {
-                    // Display 0 as currency
-                    vendorAmountDisplay.textContent = formatForInput(0, true);
                     amountHiddenInput.value = 0.00;
                     return;
                 }
-
-                const agreementRate = agreementPercent / 100;
-                let totalDeductionRate = agreementRate;
-
-                incomingTaxCheckboxes.forEach(checkbox => {
-                    if (checkbox.checked) {
-                        const taxPercentage = parseFloat(checkbox.dataset.percentage) || 0;
-                        totalDeductionRate += (taxPercentage / 100);
-                    }
-                });
-
-                // Apply the Combined Deduction Factor (ADDITIVE LOGIC)
-                let finalAmount = totalPayment * (1 - totalDeductionRate);
-
-                const finalAmountRounded = parseFloat(finalAmount.toFixed(2));
-                // Display the final amount as currency (prepends 'Rp')
-                vendorAmountDisplay.textContent = formatForInput(finalAmountRounded, true);
-                amountHiddenInput.value = finalAmountRounded;
+                amountHiddenInput.value = parseFloat((totalPayment * 1).toFixed(2));
             }
 
-            // ------------------------------------------------------------------
-            // SPECIFICATION FILTERING & ROW MANAGEMENT
-            // ------------------------------------------------------------------
+            // Items & Specs
             function filterSpecs(itemDropdown) {
                 const selectedItemId = itemDropdown.value;
                 const row = itemDropdown.closest('tr');
                 const specDropdown = row.querySelector('.spec-select');
-
                 specDropdown.innerHTML = '';
-                if (!selectedItemId) {
-                    return;
-                }
-
+                if (!selectedItemId) return;
                 const selectedItemData = itemSpecsMap.find(item => item.id == selectedItemId);
-
-                if (selectedItemData && selectedItemData.item_specs) {
+                if (selectedItemData?.item_specs) {
                     selectedItemData.item_specs.forEach(spec => {
                         const option = document.createElement('option');
                         option.value = spec.id;
@@ -478,168 +386,47 @@
             function addItem() {
                 const templateRow = document.getElementById('item-row-template');
                 const newRow = templateRow.cloneNode(true);
-
                 newRow.style.display = 'table-row';
                 newRow.removeAttribute('id');
-
-                const htmlWithIndex = newRow.innerHTML.replace(/_INDEX_/g, itemIndex);
-                newRow.innerHTML = htmlWithIndex;
-
+                newRow.innerHTML = newRow.innerHTML.replace(/_INDEX_/g, itemIndex);
                 document.getElementById('invoice-items-body').appendChild(newRow);
 
                 newRow.querySelectorAll('input, select').forEach(input => {
                     input.removeAttribute('disabled');
-                    if (input.tagName === 'INPUT' && input.type === 'text') {
-                        const isPriceField = input.classList.contains('unit-price-input') || input.classList.contains(
-                            'subtotal-input');
-                        if (isPriceField) {
+                    if (input.type === 'text') {
+                        if (input.classList.contains('unit-price-input') || input.classList.contains(
+                                'subtotal-input')) {
                             input.value = formatForInput(0.00, false);
-                        } else {
-                            input.value = input.classList.contains('quantity-input') ? 1 : '';
+                        } else if (input.classList.contains('quantity-input')) {
+                            input.value = 1;
                         }
                     } else if (input.tagName === 'SELECT') {
                         input.selectedIndex = 0;
                     }
-
                     if (input.classList.contains('subtotal-input')) {
-                        // Use the helper to set the initial state based on the global flag
                         setSubtotalInputState(input, isSubtotalOverridden);
                     }
                 });
 
                 newRow.querySelector('.spec-select').innerHTML = '';
-                // Initialize subtotal, which also calls calculateVendorCost
                 updateSubtotal(newRow);
                 filterSpecs(newRow.querySelector('.item-select'));
-
                 itemIndex++;
 
-                if (typeof InitializeSelect2 === 'function') {
-                    InitializeSelect2(newRow.querySelector('.spec-select'));
-                }
+                initializeSelect2IfAvailable(newRow.querySelector('.spec-select'));
             }
 
             function removeItem(button) {
-                const row = button.closest('tr');
-                row.remove();
+                button.closest('tr').remove();
                 calculateVendorCost();
             }
 
+            // AJAX
             function quickCreateItem(event) {
                 event.preventDefault();
-
                 const form = document.getElementById('quick-item-form');
                 const formData = new FormData(form);
-
-                // NOTE: Removed `alert()` as per system instructions
-                fetch('{{ route('items.quickStore') }}', { // Use the defined route name
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                'content'),
-                            'Accept': 'application/json'
-                        },
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // 1. Add the new item to the global map for filtering/pricing
-                            itemSpecsMap.push(data.item);
-
-                            // 2. Add the new item as an option to ALL existing item select boxes
-                            const newOption = new Option(data.item.item_name, data.item.id);
-                            document.querySelectorAll('.item-select').forEach(select => {
-                                select.add(newOption.cloneNode(true));
-                            });
-
-                            // 💡 NEW LOGIC: Update the Spec Modal's "Associate with Item" dropdown
-                            const specModalSelect = document.getElementById('spec_for_item_id');
-                            if (specModalSelect) {
-                                specModalSelect.add(newOption.cloneNode(true));
-                            }
-
-                            // 4. Close the modal and reset the form
-                            console.log('New Item "' + data.item.item_name + '" created successfully!');
-                            hideItemModal();
-                            form.reset();
-                        } else {
-                            console.error('Error saving item: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('AJAX Error:', error);
-                        // NOTE: Removed alert()
-                    });
-            }
-
-            function addSpecInput() {
-                const template = document.getElementById('spec-input-template');
-                const container = document.getElementById('spec-inputs-container');
-
-                // Clone the template, make it visible, and append it
-                const newSpecInput = template.cloneNode(true);
-                newSpecInput.removeAttribute('id');
-                newSpecInput.style.display = 'flex';
-
-                // Reset the input value (optional, but good practice)
-                newSpecInput.querySelector('input').value = '';
-
-                container.appendChild(newSpecInput);
-            }
-
-            function removeSpecInput(button) {
-                const container = document.getElementById('spec-inputs-container');
-                const inputDiv = button.closest('.flex');
-
-                // Ensure we always keep at least one input field
-                if (container.querySelectorAll('.flex:not([style*="none"])').length > 1) {
-                    inputDiv.remove();
-                } else {
-                    // NOTE: Removed alert()
-                    console.warn("You must have at least one specification detail field.");
-                }
-            }
-
-            function quickCreateSpec(event) {
-                event.preventDefault(); // Stop the form's default submission
-
-                const form = document.getElementById('quick-spec-form');
-                const formData = new FormData();
-
-                // 1. Get the item_id and check for validity
-                const itemId = document.getElementById('spec_for_item_id').value;
-                if (!itemId) {
-                    // NOTE: Removed alert()
-                    console.error("Please select an item to associate the specification with.");
-                    return;
-                }
-                formData.append('item_id', itemId);
-
-                // 2. Add CSRF token
-                formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-
-                // 3. Collect and filter description inputs
-                const descriptionInputs = form.querySelectorAll('input[name="descriptions[]"]');
-                let validSpecCount = 0;
-
-                descriptionInputs.forEach(input => {
-                    const value = input.value.trim();
-                    if (value !== '') {
-                        // Append only non-empty values
-                        formData.append('descriptions[]', value);
-                        validSpecCount++;
-                    }
-                });
-
-                // IMPORTANT: Check if any valid specifications were entered
-                if (validSpecCount === 0) {
-                    // NOTE: Removed alert()
-                    console.error("Please enter at least one specification detail.");
-                    return;
-                }
-
-                fetch('{{ route('item-specs.quickStore') }}', { // Use the defined route name
+                fetch('{{ route('items.quickStore') }}', {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -647,262 +434,274 @@
                         },
                         body: formData
                     })
-                    .then(response => {
-                        // 💡 IMPORTANT: Check for non-200 status code errors here
-                        if (!response.ok) {
-                            // If it's a validation error (422) or server error, throw the response for the catch block
-                            return response.json().then(errorData => {
-                                // Throw the error data so it can be handled below
-                                throw errorData;
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            itemSpecsMap.push(data.item);
+                            const newOption = new Option(data.item.item_name, data.item.id);
+                            document.querySelectorAll('.item-select').forEach(select => {
+                                select.add(newOption.cloneNode(true));
                             });
+                            const specModalSelect = document.getElementById('spec_for_item_id');
+                            if (specModalSelect) {
+                                specModalSelect.add(newOption.cloneNode(true));
+                            }
+                            hideItemModal();
+                            form.reset();
+                            showSuccessToast('Item created successfully');
                         }
-                        return response.json();
                     })
+                    .catch(() => {
+                        alert('Failed to create item. Please try again.');
+                    });
+            }
+
+            function addSpecInput() {
+                const template = document.getElementById('spec-input-template');
+                const container = document.getElementById('spec-inputs-container');
+                const newSpecInput = template.cloneNode(true);
+                newSpecInput.removeAttribute('id');
+                newSpecInput.style.display = 'flex';
+                newSpecInput.querySelector('input').value = '';
+                container.appendChild(newSpecInput);
+                container.scrollTop = container.scrollHeight;
+            }
+
+            function removeSpecInput(button) {
+                const container = document.getElementById('spec-inputs-container');
+                const inputDiv = button.closest('.flex');
+                if (container.querySelectorAll('.flex:not([style*="none"])').length > 1) {
+                    inputDiv.remove();
+                }
+            }
+
+            function quickCreateSpec(event) {
+                event.preventDefault();
+                const form = document.getElementById('quick-spec-form');
+                const formData = new FormData();
+                const itemId = document.getElementById('spec_for_item_id').value;
+                if (!itemId) return;
+
+                formData.append('item_id', itemId);
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+                const descriptionInputs = form.querySelectorAll('input[name="descriptions[]"]');
+                let validSpecCount = 0;
+                descriptionInputs.forEach(input => {
+                    const value = input.value.trim();
+                    if (value !== '') {
+                        formData.append('descriptions[]', value);
+                        validSpecCount++;
+                    }
+                });
+                if (validSpecCount === 0) return;
+
+                fetch('{{ route('item-specs.quickStore') }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    })
+                    .then(response => response.ok ? response.json() : response.json().then(err => Promise.reject(err)))
                     .then(data => {
                         if (data.success) {
                             const itemId = document.getElementById('spec_for_item_id').value;
                             const itemToUpdate = itemSpecsMap.find(item => item.id == itemId);
-
-                            // 1. Get the specs array (it's now definitely data.specs)
                             const newSpecs = Array.isArray(data.specs) ? data.specs : [];
-
                             if (itemToUpdate && newSpecs.length > 0) {
-                                if (!itemToUpdate.item_specs) {
-                                    itemToUpdate.item_specs = [];
-                                }
-
-                                // Push all new specs into the local map
-                                newSpecs.forEach(spec => {
-                                    itemToUpdate.item_specs.push(spec);
-                                });
-
-                                // Update the spec dropdowns
+                                if (!itemToUpdate.item_specs) itemToUpdate.item_specs = [];
+                                newSpecs.forEach(spec => itemToUpdate.item_specs.push(spec));
                                 document.querySelectorAll('.item-select').forEach(select => {
-                                    if (select.value == itemId) {
-                                        filterSpecs(select);
-                                    }
+                                    if (select.value == itemId) filterSpecs(select);
                                 });
-
-                                // 2. Change the alert message to use the count and a generic message
-                                console.log(newSpecs.length + ' New Specification(s) created and linked successfully!');
                             }
-
-                            // 3. Clean up the modal
                             hideSpecModal();
                             form.reset();
-
-                            // 4. Reset the dynamic input container (Clean slate for next use)
-                            const template = document.getElementById('spec-input-template');
-                            document.getElementById('spec-inputs-container').innerHTML = template.outerHTML;
-
-                        } else {
-                            console.error('Error saving specification: ' + data.message);
+                            showSuccessToast('Specifications saved successfully');
+                            document.getElementById('spec-inputs-container').innerHTML = document.getElementById(
+                                'spec-input-template').outerHTML;
                         }
                     })
-                    .catch(error => {
-                        console.error('AJAX Error:', error);
-
-                        // Handle Validation errors (if the response was JSON with an 'errors' structure)
-                        if (error.errors) {
-                            const errorMessages = Object.values(error.errors).map(arr => arr.join('\n')).join('\n');
-                            // NOTE: Removed alert()
-                            console.error('Validation Error:\n' + errorMessages);
-                        }
-                        // Handle the explicit check in the controller
-                        else if (error.message && error.message.includes('at least one specification detail')) {
-                            // NOTE: Removed alert()
-                            console.error(error.message);
-                        } else {
-                            // Generic fallback error
-                            // NOTE: Removed alert()
-                            console.error('An unexpected error occurred during specification creation.');
-                        }
+                    .catch(() => {
+                        alert('Failed to create spec. Please try again.');
                     });
             }
 
-            // ------------------------------------------------------------------
-            // DOM READY LISTENERS
-            // ------------------------------------------------------------------
-            document.addEventListener('DOMContentLoaded', function() {
+            // Initialize
+            document.addEventListener('DOMContentLoaded', () => {
                 const totalPaymentInput = document.getElementById('total_customer_payment');
-                const agreementPercentInput = document.getElementById('agreement_percentage');
-                const incomingTaxCheckboxes = document.querySelectorAll('input[name="incoming_tax_ids[]"]');
-
-                // Attach calculation listeners to the correct global function
-                totalPaymentInput.addEventListener('input', calculateVendorCost);
-                agreementPercentInput.addEventListener('input', calculateVendorCost);
-                incomingTaxCheckboxes.forEach(checkbox => {
-                    checkbox.addEventListener('change', calculateVendorCost);
+                totalPaymentInput.addEventListener('blur', e => {
+                    e.target.value = formatForInput(parseForCalculation(e.target.value), false);
                 });
-
-                // Input Formatting: Parse on blur and re-format
-                totalPaymentInput.addEventListener('blur', function(e) {
-                    // Format as number (no currency symbol in the input field)
-                    let rawValue = parseForCalculation(e.target.value);
-                    e.target.value = formatForInput(rawValue, false);
-                });
-
-                // Apply formatting to existing total payment input on load (Format as number)
                 totalPaymentInput.value = formatForInput(parseForCalculation(totalPaymentInput.value || 0), false);
 
-                // Input Formatting: Apply to subtotal inputs using event delegation on the body (safer for dynamic rows)
-                document.getElementById('invoice-items-body').addEventListener('blur', function(e) {
+                document.getElementById('invoice-items-body').addEventListener('blur', e => {
                     if (e.target.classList.contains('subtotal-input')) {
-                        let rawValue = parseForCalculation(e.target.value);
-                        e.target.value = formatForInput(rawValue, false); // Format as number
-                        calculateVendorCost(); // Recalculate if subtotal is manually changed
+                        e.target.value = formatForInput(parseForCalculation(e.target.value), false);
+                        calculateVendorCost();
                     }
                 }, true);
 
-                // Final initial run
                 calculateVendorCost();
 
-                // Add a starter item when the page loads
-                // Check if only the template row is present (assuming an initial load state check)
-                if (document.querySelectorAll('.item-row').length === 1 && !document.querySelectorAll(
-                        '.item-row:not([id="item-row-template"])').length) {
-                    addItem();
-                }
+                function restoreOldItems() {
+                    const oldItems = @json(old('items', []));
+                    const tbody = document.getElementById('invoice-items-body');
+                    const initialRows = tbody.querySelectorAll('tr:not(#item-row-template)').length;
 
-                // Initialize Select2 if available
-                if (typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
-                    $('.select2-enabled').select2({
-                        placeholder: "Select specifications",
-                        allowClear: true
-                    });
-                }
-            });
+                    tbody.querySelectorAll('tr:not(#item-row-template)').forEach(tr => tr.remove());
 
-            // -------------------------------------------------------
-// BASED ON ORDER LOGIC (Full Prefill)
-// -------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("🟢 Based-on-order logic initialized");
-    const checkbox = document.getElementById('based_on_order_checkbox');
-    const dropdown = document.getElementById('based_on_order_select');
+                    let itemsArray = [];
+                    if (Array.isArray(oldItems)) {
+                        itemsArray = oldItems;
+                    } else if (oldItems && typeof oldItems === 'object') {
+                        itemsArray = Object.entries(oldItems)
+                            .filter(([key, item]) => {
+                                // Skip template placeholder and invalid items
+                                return key !== '_INDEX_' &&
+                                    item &&
+                                    typeof item === 'object' &&
+                                    item.item_id != null; // only real items have item_id
+                            })
+                            .map(([key, item]) => item);
+                    }
 
-    if (!checkbox || !dropdown) {
-        console.error("❌ Checkbox or dropdown not found in DOM");
-        return;
-    }
+                    if (itemsArray.length > 0) {
+                        itemsArray.forEach((item, idx) => {
+                            addItem();
+                            const row = tbody.querySelector('tr:last-child');
+                            const {
+                                itemSelect,
+                                quantityInput,
+                                subtotalInput,
+                                specSelect
+                            } = {
+                                itemSelect: row.querySelector('.item-select'),
+                                quantityInput: row.querySelector('.quantity-input'),
+                                subtotalInput: row.querySelector('.subtotal-input'),
+                                specSelect: row.querySelector('.spec-select')
+                            };
 
-    checkbox.addEventListener('change', () => {
-        console.log("Checkbox toggled:", checkbox.checked);
-        if (checkbox.checked) {
-            dropdown.classList.remove('hidden');
-        } else {
-            dropdown.classList.add('hidden');
-            dropdown.value = '';
-        }
-    });
+                            if (item.item_id != null) itemSelect.value = item.item_id;
+                            if (item.quantity != null) quantityInput.value = item.quantity;
+                            if (item.subtotal != null) subtotalInput.value = formatForInput(item.subtotal,
+                                false);
 
-    dropdown.addEventListener('change', async () => {
-        const orderId = dropdown.value;
-        console.log("📦 Selected Order ID:", orderId);
-        if (!orderId) return;
+                            specSelect.innerHTML = '';
+                            const allSpecsForItem = itemSpecsMap.find(i => i.id == item.item_id)?.item_specs ||
+                                [];
+                            allSpecsForItem.forEach(spec => {
+                                const opt = document.createElement('option');
+                                opt.value = spec.id;
+                                opt.textContent = spec.item_description;
+                                if (Array.isArray(item.item_spec_ids)) {
+                                    if (item.item_spec_ids.includes(String(spec.id)) || item
+                                        .item_spec_ids.includes(Number(spec.id))) {
+                                        opt.selected = true;
+                                    }
+                                }
+                                specSelect.appendChild(opt);
+                            });
 
-        try {
-            const res = await fetch(`/orders/${orderId}/template`);
-            console.log("📡 Fetch URL:", res.url, "Status:", res.status);
-            const data = await res.json();
-            console.log("📥 Received Data:", data);
-
-            if (!data || !data.id) {
-                console.warn("⚠️ No data returned for this order");
-                return;
-            }
-
-            alert(`Order ${data.ord_number} loaded!`);
-
-            // ===== Prefill Base Inputs =====
-            document.getElementById('client_id').value = data.client_id ?? '';
-            document.getElementById('department_id').value = data.department_id ?? '';
-            document.getElementById('cur').value = data.cur ?? 'IDR';
-            document.getElementById('project_name').value = data.project_name ?? '';
-            document.getElementById('order_no').value = ''; // Keep blank (new order)
-            document.getElementById('ord_date').value = new Date().toISOString().split('T')[0]; // Today
-
-            // Purchase Order
-            document.getElementById('po_number').value = data.po_number ? `${data.po_number}-COPY` : '';
-            document.getElementById('po_date').value = new Date().toISOString().split('T')[0];
-
-            // Vendor & Financials
-            if (data.vendor_id) document.getElementById('vendor_id').value = data.vendor_id;
-            if (data.amount) document.getElementById('total_customer_payment').value = formatForInput(data.amount, false);
-            if (data.agreement_percentage)
-                document.getElementById('agreement_percentage').value = data.agreement_percentage;
-
-            // ===== Taxes =====
-            document.querySelectorAll('input[name="incoming_tax_ids[]"]').forEach(c => c.checked = false);
-            document.querySelectorAll('input[name="outgoing_tax_ids[]"]').forEach(c => c.checked = false);
-
-            if (Array.isArray(data.incoming_tax_ids)) {
-                data.incoming_tax_ids.forEach(id => {
-                    const checkbox = document.querySelector(`#in-tax-${id}`);
-                    if (checkbox) checkbox.checked = true;
-                });
-            }
-            if (Array.isArray(data.outgoing_tax_ids)) {
-                data.outgoing_tax_ids.forEach(id => {
-                    const checkbox = document.querySelector(`#out-tax-${id}`);
-                    if (checkbox) checkbox.checked = true;
-                });
-            }
-
-            // ===== Items =====
-            const tbody = document.getElementById('invoice-items-body');
-            tbody.querySelectorAll('tr:not(#item-row-template)').forEach(tr => tr.remove());
-
-            if (Array.isArray(data.items)) {
-                data.items.forEach(item => {
-                    addItem();
-                    const row = tbody.querySelector('tr:last-child');
-                    const itemSelect = row.querySelector('.item-select');
-                    const qtyInput = row.querySelector('.quantity-input');
-                    const subInput = row.querySelector('.subtotal-input');
-                    const specSelect = row.querySelector('.spec-select');
-
-                    itemSelect.value = item.item_id;
-                    qtyInput.value = item.quantity;
-                    subInput.value = formatForInput(item.subtotal, false);
-
-                    // Fill Specs
-                    specSelect.innerHTML = '';
-                    if (item.specs && item.specs.length > 0) {
-                        item.specs.forEach(spec => {
-                            const opt = document.createElement('option');
-                            opt.value = spec.id;
-                            opt.textContent = spec.item_description;
-                            opt.selected = true;
-                            specSelect.appendChild(opt);
+                            updateSubtotal(row);
+                            initializeSelect2IfAvailable(row.querySelector('.spec-select'));
                         });
                     }
 
-                    // Trigger price recalculation and spec binding
-                    updateSubtotal(row);
+                    const finalRows = tbody.querySelectorAll('tr:not(#item-row-template)').length;
+                    if (finalRows === 0) {
+                        addItem();
+                        const newFinalRows = tbody.querySelectorAll('tr:not(#item-row-template)').length;
+                    }
+                }
 
-                    if (typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
-                        $(specSelect).select2({ placeholder: "Select specifications", allowClear: true });
+                // Restore old input
+                restoreOldItems();
+
+                // Based-on-order logic
+                const checkbox = document.getElementById('based_on_order_checkbox');
+                const dropdown = document.getElementById('based_on_order_select');
+                if (!checkbox || !dropdown) return;
+
+                checkbox.addEventListener('change', () => {
+                    dropdown.classList.toggle('hidden', !checkbox.checked);
+                    if (!checkbox.checked) dropdown.value = '';
+                });
+
+                dropdown.addEventListener('change', async () => {
+                    const orderId = dropdown.value;
+                    if (!orderId) return;
+                    try {
+                        const res = await fetch(`/orders/${orderId}/template`);
+                        const data = await res.json();
+                        if (!data?.id) return;
+
+                        alert(`Order ${data.ord_number} loaded!`);
+
+                        document.getElementById('client_id').value = data.client_id ?? '';
+                        document.getElementById('department_id').value = data.department_id ?? '';
+                        document.getElementById('cur').value = data.cur ?? 'IDR';
+                        document.getElementById('project_name').value = data.project_name ?? '';
+                        document.getElementById('ord_number').value = data.ord_number ?? '';
+                        document.getElementById('ord_date').value = new Date().toISOString().split('T')[0];
+                        document.getElementById('po_number').value = data.po_number ?
+                            `${data.po_number}-COPY` : '';
+                        document.getElementById('po_date').value = new Date().toISOString().split('T')[0];
+                        document.getElementById('remark').value = data.remark ?? '';
+
+                        const pph23Checkbox = document.querySelector('input[name="is_pph23_prepaid"]');
+                        if (pph23Checkbox) {
+                            pph23Checkbox.checked = Boolean(data.is_pph23_prepaid);
+                        }
+
+                        const tbody = document.getElementById('invoice-items-body');
+                        tbody.querySelectorAll('tr:not(#item-row-template)').forEach(tr => tr.remove());
+
+                        if (Array.isArray(data.items)) {
+                            data.items.forEach(item => {
+                                addItem();
+                                const row = tbody.querySelector('tr:last-child');
+                                const itemSelect = row.querySelector('.item-select');
+                                const qtyInput = row.querySelector('.quantity-input');
+                                const subInput = row.querySelector('.subtotal-input');
+                                const specSelect = row.querySelector('.spec-select');
+
+                                itemSelect.value = item.item_id;
+                                qtyInput.value = item.quantity;
+                                subInput.value = formatForInput(item.subtotal, false);
+
+                                const allSpecsForItem = itemSpecsMap.find(i => i.id == item.item_id)
+                                    ?.item_specs || [];
+                                specSelect.innerHTML = '';
+                                allSpecsForItem.forEach(spec => {
+                                    const opt = document.createElement('option');
+                                    opt.value = spec.id;
+                                    opt.textContent = spec.item_description;
+                                    const isSelected = item.specs?.some(s => s.id == spec
+                                        .id) ?? false;
+                                    if (isSelected) opt.selected = true;
+                                    specSelect.appendChild(opt);
+                                });
+
+                                updateSubtotal(row);
+                                initializeSelect2IfAvailable(specSelect);
+                            });
+                        }
+                        calculateVendorCost();
+                    } catch (err) {
+                        alert('Failed to load template.');
                     }
                 });
-            }
-
-            calculateVendorCost();
-
-        } catch (err) {
-            console.error('Error fetching template data:', err);
-        }
-    });
-});
-
+            });
         </script>
     </x-pages.form>
 
-    {{-- 💡 ITEM QUICK-CREATE MODAL PLACEHOLDER --}}
+    {{-- Quick Add Item Modal --}}
     <div id="item-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h4 class="text-lg font-bold mb-4">Quick Add New Item</h4>
-            {{-- THIS FORM WOULD POST TO A NEW CONTROLLER METHOD VIA AJAX/LIVEWIRE/ETC. --}}
             <form id="quick-item-form" onsubmit="quickCreateItem(event); return false;">
                 @csrf
                 <div>
@@ -924,7 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     </div>
 
-    {{-- 💡 SPEC QUICK-CREATE MODAL PLACEHOLDER --}}
+    {{-- Quick Add Specification Modal --}}
     <div id="spec-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
             <h4 class="text-lg font-bold mb-4">Quick Add New Specification</h4>
@@ -935,7 +734,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <select id="spec_for_item_id" name="item_id" class="mt-1 block w-full rounded-md border-gray-300"
                         required>
                         <option value="">Select Item</option>
-                        {{-- Options populated by JS on DOMContentLoaded --}}
                         @foreach ($items as $item)
                             <option value="{{ $item->id }}">{{ $item->item_name }}</option>
                         @endforeach
@@ -944,19 +742,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div class="mt-4 border-t pt-4">
                     <x-input-label value="{{ __('Specification Details') }}" class="mb-2" />
-
-                    <div id="spec-inputs-container" class="space-y-2">
-                        {{-- SPEC INPUT TEMPLATE --}}
+                    <div id="spec-inputs-container" class="space-y-2 max-h-60 overflow-y-auto pr-2">
                         <div id="spec-input-template" class="flex space-x-2 items-center" style="display: none;">
                             <x-text-input name="descriptions[]" type="text" class="block w-full"
                                 placeholder="e.g., Color: Black" />
                             <button type="button" onclick="removeSpecInput(this)"
                                 class="text-red-600 hover:text-red-800 text-lg">&times;</button>
                         </div>
-
-                        {{-- ACTUAL INPUTS WILL BE ADDED HERE --}}
                     </div>
-
                     <div class="mt-3">
                         <x-secondary-button type="button" onclick="addSpecInput()">
                             {{ __('Add Another Spec Field') }}
@@ -973,4 +766,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     </div>
 
+    {{-- Success Toast --}}
+    <div id="success-toast"
+        class="fixed top-5 right-5 z-50
+                transform translate-x-full opacity-0
+                transition-all duration-300 ease-out
+                bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M5 13l4 4L19 7"/>
+        </svg>
+        <span id="success-toast-message">Saved successfully</span>
+    </div>
 </x-app-layout>

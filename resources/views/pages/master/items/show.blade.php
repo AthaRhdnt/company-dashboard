@@ -118,11 +118,7 @@
                         this.specs.push(data.spec);
                         this.originalSpecs.push(JSON.parse(JSON.stringify(data.spec))); // Deep copy for original
                         this.newSpecDescription = ''; // Clear the input
-            
-                        console.log('Spec created successfully:', data.spec.id);
-            
                     } catch (error) {
-                        console.error('Error creating spec:', error);
                         alert('Failed to create specification.');
                     }
                 },
@@ -144,10 +140,7 @@
                         // Remove the spec from both Alpine arrays
                         this.specs = this.specs.filter(s => s.id !== id);
                         this.originalSpecs = this.originalSpecs.filter(s => s.id !== id);
-            
-                        console.log('Spec deleted successfully:', id);
                     } catch (error) {
-                        console.error('Error deleting spec:', error);
                         alert('Failed to delete specification.');
                     }
                 },

@@ -16,7 +16,7 @@
         name="{{ $name }}" 
         value="{{ old($name, $value) }}"
         {{-- Set required for date fields when editing --}}
-        {{ $attributes->merge(['required' => $type === 'date']) }}
+        {{-- {{ $attributes->merge(['required' => $type === 'date']) }} --}}
         
         {{-- CRITICAL FIX: All classes (Base, Active, Error) are now inside the dynamic :class --}}
         :class="{

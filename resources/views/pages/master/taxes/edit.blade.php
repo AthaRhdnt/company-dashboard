@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-pages.form resource="taxes" :item="$tax">
+    <x-pages.form resource="taxes" action="update" :item="$tax">
         <div>
             <label for="tax_name" class="block text-sm font-medium text-gray-700">Tax Name:</label>
             <input type="text" id="tax_name" name="tax_name" value="{{ $tax->tax_name }}" required

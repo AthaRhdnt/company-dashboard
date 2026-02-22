@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://alpinejs.dev/plugins/collapse "></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <!-- Load Alpine.js and Collapse plugin -->
-    {{-- <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script> --}}
-    {{-- <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script> --}}
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
@@ -35,13 +34,18 @@
 
             @include('layouts.sidebar')
             <main class="flex-1 p-8 overflow-y-auto">
-                {{-- @include('layouts.header') --}}
-                {{-- <div class="p-6">
-                    {{$slot}}
-                </div> --}}
                 {{$slot}}
-                {{-- @include('layouts.footer') --}}
             </main>
         </div>
+        <script>
+            // Disable Enter to submit on all forms
+            document.addEventListener('keydown', function (e) {
+                // If Enter key AND target is inside a form AND not a textarea
+                if (e.key === 'Enter' && e.target.form && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        </script>
     </body>
 </html>

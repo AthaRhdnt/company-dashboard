@@ -154,11 +154,6 @@
                             :class="activePage === 'items' ? 'text-indigo-400 font-semibold' :
                                 'text-gray-400 hover:bg-gray-700 hover:text-white'"
                             :class="!sidebarOpen && 'hidden'">Items</a></li>
-                    {{-- <li><a href="{{ route('item-specs.index') }}" @click="activePage = 'itemSpecs'"
-                            class="block p-2 text-sm rounded-lg transition-colors duration-150"
-                            :class="activePage === 'itemSpecs' ? 'text-indigo-400 font-semibold' :
-                                'text-gray-400 hover:bg-gray-700 hover:text-white'"
-                            :class="!sidebarOpen && 'hidden'">Item Specs</a></li> --}}
                 </ul>
             </div>
 
